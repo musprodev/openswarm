@@ -193,3 +193,18 @@ memory/
 *.swp
 *.swo
 *~
+
+# One-time migration/utility scripts (removed from tracking)
+convert_to_opencode.py
+convert_to_pi.py
+final_cleanup.py
+make_portable.py
+update_agent_tools.py
+update_shared_tools.py
+
+# Pi CLI configuration
+pi.config.ts
+
+# Sample / example files
+examples/
+workflows/
