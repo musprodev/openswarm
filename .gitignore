@@ -184,3 +184,12 @@ cython_debug/
 .agency_swarm/
 third_party/
 .claude/
+
+# Runtime / temporary
+.antigravitycli/
+.pi/
+memory/
+.idea/
+*.swp
+*.swo
+*~

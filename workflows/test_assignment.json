@@ -1,0 +1,15 @@
+{
+  "assignment_id": "test_assignment",
+  "objective": "Test objective",
+  "status": "planning",
+  "tasks": [
+    {
+      "task_id": "task_1",
+      "description": "Do research",
+      "assigned_agent": "openswarm-deep-research",
+      "status": "in_progress",
+      "dependencies": [],
+      "output_file": ""
+    }
+  ]
+}

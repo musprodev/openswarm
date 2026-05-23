@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Assignment Task State",
+  "type": "object",
+  "properties": {
+    "assignment_id": {
+      "type": "string",
+      "description": "Unique identifier for the assignment"
+    },
+    "objective": {
+      "type": "string",
+      "description": "The overall goal of the assignment"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["planning", "in_progress", "reviewing", "completed"],
+      "default": "planning"
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "assigned_agent": {
+            "type": "string",
+            "description": "The opencode agent responsible for this task"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "in_progress", "completed", "failed"],
+            "default": "pending"
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of task_ids that must be completed before this one"
+          },
+          "output_file": {
+            "type": "string",
+            "description": "Path to the primary artifact produced by this task, if any"
+          }
+        },
+        "required": ["task_id", "description", "assigned_agent", "status"]
+      }
+    }
+  },
+  "required": ["assignment_id", "objective", "status", "tasks"]
+}

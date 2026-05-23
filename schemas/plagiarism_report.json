@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Plagiarism Risk Report",
+  "type": "object",
+  "properties": {
+    "file_checked": {
+      "type": "string",
+      "description": "Path to the file that was analyzed"
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["low", "medium", "high"],
+      "description": "Overall estimated risk level"
+    },
+    "similarity_percentage": {
+      "type": "number",
+      "description": "Estimated percentage of content matched to external or historical sources (0-100)"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["text_match", "code_match", "citation_missing", "self_plagiarism"]
+          },
+          "span": {
+            "type": "string",
+            "description": "The exact passage or code block that triggered the match"
+          },
+          "source": {
+            "type": "string",
+            "description": "The URL, file path, or 'unknown' indicating where the match was found"
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["low", "medium", "high"]
+          }
+        },
+        "required": ["type", "span", "source", "severity"]
+      }
+    },
+    "remediation_steps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Recommended steps for the author to fix the issues"
+    }
+  },
+  "required": ["file_checked", "risk_level", "similarity_percentage", "findings", "remediation_steps"]
+}

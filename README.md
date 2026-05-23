@@ -1,169 +1,110 @@
 <div align="center">
 
-# 🚀 OpenSwarm
+# 🏢 OpenSwarm — OFFICE AI Agent
 
 ![OpenSwarm](assets/new-framework.jpg)
 
 </div>
 
-**The fully open-source multi-agent system that does everything Claude Code can't.**
+**Your AI-powered office team. From one prompt to complete deliverables.**
 
-Create polished slide decks, research reports, data visualizations, documents, images, and videos — all from a single prompt in your terminal. No platform, no UI, no setup hassles.
+OpenSwarm is a multi-agent AI system that acts as your entire office staff — research, write, analyze data, build slides, generate images, produce videos, and manage communications. All from a single prompt in your terminal.
 
-✨ **One prompt → Complete deliverables**<br>
-🎯 **8 specialized agents working together**<br>
+✨ **One prompt → Complete office deliverables**<br>
+🎯 **8 specialized AI agents working together**<br>
 ⚡ **Install in 30 seconds, running in 60**<br>
-🔧 **100% customizable and forkable**<br>
+🔧 **100% customizable — fork and build your own swarm**<br>
 
-Built on [Agency Swarm](https://github.com/VRSEN/agency-swarm) — the framework powering real AI swarms.<br>
-
----
-
-> 💼 **Investor or looking to integrate AI agents into your SaaS?**
-> We're the team behind OpenSwarm and Agency Swarm, building the future of multi-agent systems.
-> **[Partner with us →](https://vrsen-ai.notion.site/fee2d391a8d74b24baa04a0b648af83c?pvs=105)**
+Built on [Agency Swarm](https://github.com/VRSEN/agency-swarm) — the open-source multi-agent framework.
 
 ---
 
-## 💡 What Makes This Different?
+## 💡 What Is an OFFICE AI Agent?
 
-Instead of one agent trying to do everything poorly, you get **specialists coordinated by an orchestrator**.
+Instead of switching between ChatGPT, Canva, Excel, and Google Docs, you get **specialists coordinated by an orchestrator** — working together to produce complete deliverables.
 
-### 🎯 Real Examples
+### 🎯 Real Office Tasks
 
-Paste these into your terminal and watch magic happen:
+Paste these into your terminal:
 
-- **"Create a complete investor pitch for OpenSwarm"** → Full deck + executive summary + market research
-- **"Research my top 5 competitors and write 3 SEO-optimized blog posts"** → Competitive analysis + keyword research + publish-ready content
-- **"Analyze this data and create a quarterly report with charts"** → Data insights + visualizations + formatted document
-- **"Generate a product launch video with animations"** → Professional video with graphics and transitions
-- **"Build me a marketing campaign for Q2"** → Strategy doc + creative assets + implementation timeline
-
-Connect to 10,000+ external services (Gmail, Slack, GitHub, HubSpot) via Composio for even more power.
+- **"Draft a quarterly report with charts from last quarter's data"** → Analysis + visualizations + formatted document
+- **"Research our top 5 competitors and write blog posts"** → Competitive analysis + keyword research + publish-ready content
+- **"Create an investor pitch deck and executive summary"** → Full slides + written summary + market research
+- **"Schedule a team meeting and send the agenda via email"** → Calendar management + Slack/email notifications
+- **"Generate product launch images and a promo video"** → Professional graphics + animated video with transitions
 
 ---
 
-## 🤖 Meet Your AI Team
+## 🤖 Meet Your Office AI Team
 
-| Agent                      | What it does                                                                                                                                                                                 |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Orchestrator**           | Routes every user request to the right specialist(s). Never answers directly — pure coordination.                                                                                            |
-| **Virtual Assistant**      | Handles everyday tasks: writing, scheduling, messaging, task management. Gains 10,000+ external integrations via [Composio](https://composio.dev) (Gmail, Slack, GitHub, HubSpot, and more). |
-| **Deep Research**          | Conducts comprehensive, evidence-based web research with citations and balanced analysis.                                                                                                    |
-| **Data Analyst**           | Analyses structured data, builds charts, runs statistical models — all inside an isolated IPython kernel.                                                                                    |
-| **Slides Agent**           | Generates complete, visually polished HTML slide decks, then exports them to PPTX.                                                                                                           |
-| **Docs Agent**             | Creates formatted Word documents and PDFs from outlines or raw content.                                                                                                                      |
-| **Image Generation Agent** | Generates and edits images using Gemini 2.5 Flash Image / Gemini 3 Pro Image and fal.ai.                                                                                                     |
-| **Video Generation Agent** | Produces videos via Sora (OpenAI), Veo (Google), and Seedance (fal.ai); also edits and combines clips.                                                                                       |
+| Agent | What it does |
+|---|---|
+| **Orchestrator** | Routes every request to the right specialist. Pure coordination. |
+| **Virtual Assistant** | Email, calendar, Slack, file management, task tracking. 10,000+ integrations via Composio (Gmail, Slack, GitHub, HubSpot). |
+| **Deep Research** | Comprehensive web research with citations, competitive analysis, and balanced synthesis. |
+| **Data Analyst** | Analyzes spreadsheets, builds charts, runs statistical models — all in an isolated IPython kernel. |
+| **Docs Agent** | Creates formatted Word documents, PDFs, reports, and meeting notes. |
+| **Slides Agent** | Generates polished HTML slide decks and exports to PPTX. |
+| **Image Generation Agent** | Creates and edits images using Gemini and fal.ai models. |
+| **Video Generation Agent** | Produces and edits videos via Sora, Veo, and Seedance. |
 
 ---
 
-## 📦 Get Started in 30 Seconds
-
-**For most users (recommended):**
+## 📦 Get Started
 
 ```bash
 npm install -g @vrsen/openswarm
 openswarm
 ```
 
-That's it! The setup wizard handles everything: authentication, dependencies, and configuration.
+The setup wizard handles authentication, dependencies, and configuration.
 
 **Requirements:** Node.js 20+ (Python 3.10+ auto-installed)
 
-## 🔧 Build Your Own Swarm
-
-Fork this repo and create your own specialized AI team in minutes:
+## 🔧 Local Development
 
 ```bash
-git clone https://github.com/VRSEN/openswarm.git
-cd openswarm
-```
-
-Then tell **Claude Code**, **Cursor**, or **Codex**:
-
-> _"Turn this into an SEO optimization swarm"_
-
-They'll automatically customize all agents for your use case.
-
-**Popular custom swarms:**
-
-- **SEO Swarm:** Keyword research + competitor analysis + blog writing
-- **Sales Swarm:** Lead research + outreach + proposal generation
-- **Marketing Swarm:** Campaign planning + creative assets + analytics
-- **Product Swarm:** Market research + feature specs + launch materials
-
-## ⚙️ API Keys & Setup
-
-The setup wizard walks you through everything, but you'll need at least one of these:
-
-**Required (choose one):**
-
-- `OPENAI_API_KEY` - For GPT 5.5 and Sora video generation
-- `ANTHROPIC_API_KEY` - For Claude models
-
-**Optional superpowers:**
-
-- `COMPOSIO_API_KEY` - Unlock 10,000+ integrations (Gmail, Slack, GitHub, etc.)
-- `GOOGLE_API_KEY` - Gemini image generation + Veo video
-- `FAL_KEY` - Advanced video editing and effects
-- `SEARCH_API_KEY` - Web search for research agent
-
-Tools gracefully degrade when keys are missing — you'll get clear instructions on what to add.
-
----
-
-## 🚀 Coming Soon
-
-- **Agent Builder Agent** - Create custom swarms from a single prompt
-- **OpenClaw + Claude Code integration** - All agents in one place
-
-⭐ **Star us on GitHub** to stay updated and help us prioritize features!
-
-## 🏗️ For Developers
-
-**Local development:**
-
-```bash
-git clone https://github.com/VRSEN/openswarm.git
+git clone https://github.com/musprodev/openswarm.git
 cd openswarm
 python swarm.py
 ```
 
-**Docker deployment:**
-
+**Docker:**
 ```bash
-git clone https://github.com/VRSEN/openswarm.git
-cd openswarm
 cp .env.example .env        # Add your API keys
 docker-compose up --build
 ```
 
 **API server:**
-
 ```bash
 python server.py           # Runs on localhost:8080
 ```
 
+## ⚙️ Requirements
+
+**At least one of:**
+- `OPENAI_API_KEY` — GPT models + Sora video
+- `ANTHROPIC_API_KEY` — Claude models
+
+**Optional:**
+- `COMPOSIO_API_KEY` — 10,000+ integrations (Gmail, Slack, GitHub)
+- `GOOGLE_API_KEY` — Gemini image generation + Veo video
+- `FAL_KEY` — Advanced video editing
+- `SEARCH_API_KEY` — Web search for research agent
+
 ---
 
-## 📺 Learn More
+## 🏗️ Build Your Own Swarm
 
-- **Watch the full demo:** [YouTube video →](https://youtu.be/c5DdXzqaeVU?si=rM2CNaZ8qVwMvqmz)
-- **Multi-agent framework:** [Agency Swarm](https://github.com/VRSEN/agency-swarm)
-- **Terminal UI for Agency Swarm:** [AgentSwarm](https://github.com/VRSEN/agentswarm-cli) (OpenCode-based TUI)
-- **External integrations:** [Composio](https://composio.dev)
+Fork this repo and create a custom AI team:
 
-## Star History
+> _"Turn this into an SEO optimization swarm"_ — Claude Code, Cursor, or Codex will customize all agents automatically.
 
-[![Star History Chart](https://api.star-history.com/svg?repos=VRSEN/OpenSwarm&type=date&legend=top-left)](https://www.star-history.com/#VRSEN/OpenSwarm&type=date&legend=top-left)
-
----
-
-## 👥 Team
-
-- **Artemii Shatokhin** — Built the core OpenSwarm agent team: the specialist agents, orchestration layer, shared tools, and runtime integrations. ([GitHub](https://github.com/ArtemShatokhin))
-- **Nick Bobrowski** — Built the foundation OpenSwarm builds on: Agency Swarm and the AgentSwarm CLI/TUI, an OpenCode-based terminal experience customized for Agency Swarm. ([GitHub](https://github.com/nicko-ai))
+**Popular custom swarms:**
+- **SEO Swarm** — Keyword research + competitor analysis + blog writing
+- **Sales Swarm** — Lead research + outreach + proposal generation
+- **Marketing Swarm** — Campaign planning + creative assets + analytics
+- **Product Swarm** — Market research + feature specs + launch materials
 
 ---
 

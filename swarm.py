@@ -60,10 +60,13 @@ def create_agency(load_threads_callback=None):
     ]
 
     handoff_flows = [
-        (a > b, Handoff)
-        for a in all_agents
-        for b in all_agents
-        if a is not b
+        (orchestrator > specialist, Handoff)
+        for specialist in all_agents
+        if specialist is not orchestrator
+    ] + [
+        (specialist > orchestrator, Handoff)
+        for specialist in all_agents
+        if specialist is not orchestrator
     ]
 
     agency = Agency(
