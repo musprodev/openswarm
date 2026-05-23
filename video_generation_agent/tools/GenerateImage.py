@@ -3,30 +3,29 @@
 import asyncio
 import os
 from typing import Literal
-from dotenv import load_dotenv
 
+from agency_swarm import BaseTool
+from dotenv import load_dotenv
 from google import genai
 from pydantic import Field, field_validator
 
-from agency_swarm import BaseTool
 from shared_tools.model_availability import image_model_availability_message
 
-
 from .utils.image_utils import (
-    get_images_dir,
     MODEL_NAME,
+    compress_image_for_base64,
     extract_image_from_response,
     extract_usage_metadata,
+    get_images_dir,
     process_variant_result,
-    split_results_and_usage,
     run_parallel_variants,
-    compress_image_for_base64,
+    split_results_and_usage,
 )
 
 
 class GenerateImage(BaseTool):
     """Generate images using Google's Gemini 2.5 Flash Image (Nano Banana) model.
-    
+
     Images are saved to: mnt/{product_name}/generated_images/
     """
 
@@ -49,7 +48,9 @@ class GenerateImage(BaseTool):
         default=1,
         description="Number of image variants to generate (1-4, default is 1)",
     )
-    aspect_ratio: Literal["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"] = Field(
+    aspect_ratio: Literal[
+        "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"
+    ] = Field(
         default="1:1",
         description="The aspect ratio of the generated image (default is 1:1)",
     )
@@ -112,7 +113,9 @@ class GenerateImage(BaseTool):
                     images_dir,
                 )
                 result["prompt_tokens"] = float(usage_metadata.get("prompt_token_count") or 0)
-                result["candidate_tokens"] = float(usage_metadata.get("candidates_token_count") or 0)
+                result["candidate_tokens"] = float(
+                    usage_metadata.get("candidates_token_count") or 0
+                )
                 return result
             except Exception:
                 return None
@@ -124,13 +127,12 @@ class GenerateImage(BaseTool):
         results, _usage = split_results_and_usage(raw_results)
         return results
 
+
 if __name__ == "__main__":
     # Example usage with Google Gemini 2.5 Flash Image
     tool = GenerateImage(
         product_name="Test_Product",
-        prompt=(
-            "Generate an image of a sparrow flying away from the camera"
-        ),
+        prompt=("Generate an image of a sparrow flying away from the camera"),
         file_name="test_image",
         aspect_ratio="16:9",
     )

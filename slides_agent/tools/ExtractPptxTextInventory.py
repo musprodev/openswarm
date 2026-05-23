@@ -42,12 +42,12 @@ class ExtractPptxTextInventory(BaseTool):
         """Extract text inventory and save to JSON."""
         import sys
         from pathlib import Path as PathLib
-        
+
         # Add pptx/scripts to path for inventory import
         scripts_dir = PathLib(__file__).parent.parent / "pptx" / "scripts"
         if str(scripts_dir) not in sys.path:
             sys.path.insert(0, str(scripts_dir))
-        
+
         from inventory import extract_text_inventory, save_inventory  # type: ignore
 
         input_path = Path(self.input_pptx)

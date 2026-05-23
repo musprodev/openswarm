@@ -4,7 +4,6 @@ import gzip
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 from agency_swarm.tools import BaseTool
 from pydantic import Field
@@ -12,11 +11,19 @@ from pydantic import Field
 # Supported file extensions
 RASTER_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tif", ".tiff", ".webp"}
 CONVERTIBLE_EXTS = {
-    ".emf", ".wmf", ".emz", ".wmz",  # Windows metafiles
-    ".svg", ".svgz",  # SVG
-    ".wdp", ".jxr",  # JPEG XR
-    ".heic", ".heif",  # HEIF
-    ".pdf", ".eps", ".ps",  # Page description formats
+    ".emf",
+    ".wmf",
+    ".emz",
+    ".wmz",  # Windows metafiles
+    ".svg",
+    ".svgz",  # SVG
+    ".wdp",
+    ".jxr",  # JPEG XR
+    ".heic",
+    ".heif",  # HEIF
+    ".pdf",
+    ".eps",
+    ".ps",  # Page description formats
 }
 SUPPORTED_EXTS = RASTER_EXTS | CONVERTIBLE_EXTS
 
@@ -50,11 +57,11 @@ class EnsureRasterImage(BaseTool):
         ...,
         description="Path to the input image file",
     )
-    output_dir: Optional[str] = Field(
+    output_dir: str | None = Field(
         default=None,
         description="Directory for output PNG (defaults to same directory as input)",
     )
-    dpi: Optional[int] = Field(
+    dpi: int | None = Field(
         default=None,
         description="Optional rasterization DPI for vector formats (e.g., 192 for crisp icons)",
     )
@@ -86,7 +93,7 @@ class EnsureRasterImage(BaseTool):
         except Exception as e:
             return f"Error converting {input_path}: {e}"
 
-    def _convert(self, input_path: Path, out_path: Path, ext: str, dpi: Optional[int]) -> str:
+    def _convert(self, input_path: Path, out_path: Path, ext: str, dpi: int | None) -> str:
         """Convert the file and return the output path."""
         out_dir = out_path.parent
         dpi_arg = [f"--export-dpi={dpi}"] if dpi else []
@@ -128,14 +135,21 @@ class EnsureRasterImage(BaseTool):
         if ext in (".pdf", ".eps", ".ps"):
             gs = shutil.which("gs") or "gs"
             dpi_value = str(dpi or 200)
-            self._run_cmd([
-                gs, "-dSAFER", "-dBATCH", "-dNOPAUSE",
-                "-sDEVICE=pngalpha",
-                "-dFirstPage=1", "-dLastPage=1",
-                f"-r{dpi_value}",
-                "-o", str(out_path),
-                str(input_path),
-            ])
+            self._run_cmd(
+                [
+                    gs,
+                    "-dSAFER",
+                    "-dBATCH",
+                    "-dNOPAUSE",
+                    "-sDEVICE=pngalpha",
+                    "-dFirstPage=1",
+                    "-dLastPage=1",
+                    f"-r{dpi_value}",
+                    "-o",
+                    str(out_path),
+                    str(input_path),
+                ]
+            )
             return str(out_path)
 
         raise ValueError(f"No conversion handler for {ext}")

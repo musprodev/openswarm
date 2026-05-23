@@ -2,8 +2,8 @@ import os
 
 from composio import Composio
 from composio_openai_agents import OpenAIAgentsProvider
-
 from dotenv import load_dotenv
+
 load_dotenv()
 
 _composio_clients: dict[str, Composio] = {}

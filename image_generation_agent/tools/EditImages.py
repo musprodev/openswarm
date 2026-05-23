@@ -1,28 +1,27 @@
 """Edit images with Gemini or OpenAI image models."""
 
+import os
 from typing import Literal
 
-import os
+from agency_swarm import BaseTool
 from dotenv import load_dotenv
-from openai import OpenAI
 from pydantic import Field, field_validator, model_validator
 
-from agency_swarm import BaseTool
 from shared_tools.model_availability import image_model_availability_message
 from shared_tools.openai_client_utils import get_openai_client
 
 from .utils.image_io import (
-    get_images_dir,
-    build_variant_output_name,
-    resolve_image_reference,
-    save_image,
-    image_to_base64_jpeg,
     build_multimodal_outputs,
+    build_variant_output_name,
     extract_gemini_image_and_usage,
     extract_openai_images_and_usage,
-    run_parallel_variants_sync,
-    validate_aspect_ratio_for_model,
+    get_images_dir,
     get_openai_size_for_aspect_ratio,
+    image_to_base64_jpeg,
+    resolve_image_reference,
+    run_parallel_variants_sync,
+    save_image,
+    validate_aspect_ratio_for_model,
 )
 
 
@@ -52,7 +51,9 @@ class EditImages(BaseTool):
         description="Image model to use.",
     )
     num_variants: int = Field(default=1, description="Number of variants to generate (1-4).")
-    aspect_ratio: Literal["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"] = Field(
+    aspect_ratio: Literal[
+        "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"
+    ] = Field(
         default="1:1",
         description="Target aspect ratio. Model compatibility is validated automatically.",
     )
@@ -211,4 +212,3 @@ if __name__ == "__main__":
         print(result)
     except Exception as exc:
         print(f"Image editing failed: {exc}")
-

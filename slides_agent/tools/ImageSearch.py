@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import json
+import os
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-import os
-from dotenv import load_dotenv
 from agency_swarm.tools import BaseTool
+from dotenv import load_dotenv
 from pydantic import Field
 
 
@@ -41,73 +41,87 @@ class ImageSearch(BaseTool):
             if not key:
                 warnings.append("Unsplash skipped: UNSPLASH_ACCESS_KEY not set.")
             else:
-                url = "https://api.unsplash.com/search/photos?" + urlencode({
-                    "query": self.query,
-                    "per_page": self.per_page,
-                })
+                url = "https://api.unsplash.com/search/photos?" + urlencode(
+                    {
+                        "query": self.query,
+                        "per_page": self.per_page,
+                    }
+                )
                 req = Request(url, headers={"Authorization": f"Client-ID {key}"})
                 with urlopen(req, timeout=20) as response:
                     data = json.loads(response.read().decode("utf-8"))
                 for item in data.get("results", []):
-                    results.append({
-                        "source": "unsplash",
-                        "image_url": item.get("urls", {}).get("regular"),
-                        "thumbnail_url": item.get("urls", {}).get("thumb"),
-                        "description": item.get("description") or item.get("alt_description") or "",
-                        "photographer": (item.get("user") or {}).get("name"),
-                        "width": item.get("width"),
-                        "height": item.get("height"),
-                        "link": item.get("links", {}).get("html"),
-                    })
+                    results.append(
+                        {
+                            "source": "unsplash",
+                            "image_url": item.get("urls", {}).get("regular"),
+                            "thumbnail_url": item.get("urls", {}).get("thumb"),
+                            "description": item.get("description")
+                            or item.get("alt_description")
+                            or "",
+                            "photographer": (item.get("user") or {}).get("name"),
+                            "width": item.get("width"),
+                            "height": item.get("height"),
+                            "link": item.get("links", {}).get("html"),
+                        }
+                    )
 
         if "pexels" in providers:
             key = os.getenv("PEXELS_API_KEY")
             if not key:
                 warnings.append("Pexels skipped: PEXELS_API_KEY not set.")
             else:
-                url = "https://api.pexels.com/v1/search?" + urlencode({
-                    "query": self.query,
-                    "per_page": self.per_page,
-                })
+                url = "https://api.pexels.com/v1/search?" + urlencode(
+                    {
+                        "query": self.query,
+                        "per_page": self.per_page,
+                    }
+                )
                 req = Request(url, headers={"Authorization": key})
                 with urlopen(req, timeout=20) as response:
                     data = json.loads(response.read().decode("utf-8"))
                 for item in data.get("photos", []):
-                    results.append({
-                        "source": "pexels",
-                        "image_url": (item.get("src") or {}).get("large"),
-                        "thumbnail_url": (item.get("src") or {}).get("tiny"),
-                        "description": item.get("alt") or "",
-                        "photographer": item.get("photographer"),
-                        "width": item.get("width"),
-                        "height": item.get("height"),
-                        "link": item.get("url"),
-                    })
+                    results.append(
+                        {
+                            "source": "pexels",
+                            "image_url": (item.get("src") or {}).get("large"),
+                            "thumbnail_url": (item.get("src") or {}).get("tiny"),
+                            "description": item.get("alt") or "",
+                            "photographer": item.get("photographer"),
+                            "width": item.get("width"),
+                            "height": item.get("height"),
+                            "link": item.get("url"),
+                        }
+                    )
 
         if "pixabay" in providers:
             key = os.getenv("PIXABAY_API_KEY")
             if not key:
                 warnings.append("Pixabay skipped: PIXABAY_API_KEY not set.")
             else:
-                url = "https://pixabay.com/api/?" + urlencode({
-                    "key": key,
-                    "q": self.query,
-                    "per_page": self.per_page,
-                })
+                url = "https://pixabay.com/api/?" + urlencode(
+                    {
+                        "key": key,
+                        "q": self.query,
+                        "per_page": self.per_page,
+                    }
+                )
                 req = Request(url)
                 with urlopen(req, timeout=20) as response:
                     data = json.loads(response.read().decode("utf-8"))
                 for item in data.get("hits", []):
-                    results.append({
-                        "source": "pixabay",
-                        "image_url": item.get("largeImageURL"),
-                        "thumbnail_url": item.get("previewURL"),
-                        "description": item.get("tags") or "",
-                        "photographer": item.get("user"),
-                        "width": item.get("imageWidth"),
-                        "height": item.get("imageHeight"),
-                        "link": item.get("pageURL"),
-                    })
+                    results.append(
+                        {
+                            "source": "pixabay",
+                            "image_url": item.get("largeImageURL"),
+                            "thumbnail_url": item.get("previewURL"),
+                            "description": item.get("tags") or "",
+                            "photographer": item.get("user"),
+                            "width": item.get("imageWidth"),
+                            "height": item.get("imageHeight"),
+                            "link": item.get("pageURL"),
+                        }
+                    )
 
         if not results:
             if len(warnings) == len(providers):
@@ -117,11 +131,14 @@ class ImageSearch(BaseTool):
                 )
             return f"No images found for '{self.query}'."
 
-        return json.dumps({
-            "query": self.query,
-            "results": results,
-            "warnings": warnings,
-        }, indent=2)
+        return json.dumps(
+            {
+                "query": self.query,
+                "results": results,
+                "warnings": warnings,
+            },
+            indent=2,
+        )
 
 
 if __name__ == "__main__":

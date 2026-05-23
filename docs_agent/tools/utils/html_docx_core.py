@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 
 from bs4 import BeautifulSoup
 from bs4.element import Comment, NavigableString, Tag
@@ -46,7 +45,7 @@ def html_to_docx(html_content: str, output_path: Path) -> None:
 _SKIP_TAGS = {"style", "script", "head", "meta", "link", "title", "noscript"}
 
 
-def _unwrap_layout_table(body: Tag) -> Optional[Tag]:
+def _unwrap_layout_table(body: Tag) -> Tag | None:
     """Return the single content cell of the outer centered layout table.
 
     Many generated docs wrap the entire body in a single-row, single-cell table
@@ -84,11 +83,7 @@ def _unwrap_layout_table(body: Tag) -> Optional[Tag]:
 
 def _is_layout_wrapper_table(table: Tag) -> bool:
     style = (table.get("style") or "").replace(" ", "").lower()
-    return (
-        "width:547pt" in style
-        and "margin-left:auto" in style
-        and "margin-right:auto" in style
-    )
+    return "width:547pt" in style and "margin-left:auto" in style and "margin-right:auto" in style
 
 
 def _direct_rows(table: Tag) -> list[Tag]:
@@ -114,12 +109,12 @@ def _insert_top_anchor_paragraph(doc: Document) -> None:
     spacing = OxmlElement("w:spacing")
     spacing.set(qn("w:before"), "0")
     spacing.set(qn("w:after"), "0")
-    spacing.set(qn("w:line"), "20")    # 1pt exact
+    spacing.set(qn("w:line"), "20")  # 1pt exact
     spacing.set(qn("w:lineRule"), "exact")
     ctx = OxmlElement("w:contextualSpacing")
     r_pr = OxmlElement("w:rPr")
     sz = OxmlElement("w:sz")
-    sz.set(qn("w:val"), "2")           # 1pt font
+    sz.set(qn("w:val"), "2")  # 1pt font
     r_pr.append(sz)
     p_pr.append(spacing)
     p_pr.append(ctx)

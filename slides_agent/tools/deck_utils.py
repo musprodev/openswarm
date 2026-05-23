@@ -1,7 +1,7 @@
 """Utilities for slides_agent test deck."""
 
-from pathlib import Path
 import shutil
+from pathlib import Path
 
 from .slide_file_utils import get_project_dir
 

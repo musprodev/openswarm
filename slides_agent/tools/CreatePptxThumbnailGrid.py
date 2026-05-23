@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
 from agency_swarm.tools import BaseTool
 from pydantic import Field
 
@@ -86,9 +87,7 @@ class CreatePptxThumbnailGrid(BaseTool):
                 placeholder_regions = None
                 slide_dimensions = None
                 if self.outline_placeholders:
-                    placeholder_regions, slide_dimensions = get_placeholder_regions(
-                        input_path
-                    )
+                    placeholder_regions, slide_dimensions = get_placeholder_regions(input_path)
 
                 # Convert slides to images
                 slide_images = convert_to_images(input_path, Path(temp_dir), 100)
@@ -111,9 +110,8 @@ class CreatePptxThumbnailGrid(BaseTool):
                     slide_dimensions,
                 )
 
-                return (
-                    f"Created {len(grid_files)} thumbnail grid(s):\n"
-                    + "\n".join(f"  - {f}" for f in grid_files)
+                return f"Created {len(grid_files)} thumbnail grid(s):\n" + "\n".join(
+                    f"  - {f}" for f in grid_files
                 )
 
         except Exception as e:

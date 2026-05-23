@@ -4,7 +4,6 @@ import mimetypes
 import re
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, Optional
 from urllib.request import Request, urlopen
 
 from bs4.element import Tag
@@ -14,7 +13,17 @@ from docx.shared import Pt
 from .html_docx_css import _parse_length_to_pt
 from .html_docx_selectors import _compute_style_map
 
-_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico", ".bmp", ".avif"}
+_IMAGE_EXTENSIONS = {
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+    ".svg",
+    ".ico",
+    ".bmp",
+    ".avif",
+}
 
 # Fallback max image width when no cell/container constraint is available.
 # ~5.5 inches — fits safely within any standard A4/Letter body.
@@ -91,7 +100,7 @@ def embed_local_images(html: str, base_dir: Path) -> str:
     return html
 
 
-def _add_svg_run(paragraph, node: Tag, parent_style: Dict[str, str]) -> None:
+def _add_svg_run(paragraph, node: Tag, parent_style: dict[str, str]) -> None:
     """Rasterize an inline <svg> node to PNG and add it as a picture run.
 
     BeautifulSoup's html.parser has two SVG serialization bugs:
@@ -149,6 +158,7 @@ def _svg_node_to_xml(node: Tag, output_width: int) -> str:
 def _svg_child_to_xml(node) -> str:
     """Recursively serialize an SVG child node to XML, preserving all attribute values."""
     from bs4.element import NavigableString
+
     if isinstance(node, NavigableString):
         return str(node)
     if not isinstance(node, Tag):
@@ -156,11 +166,15 @@ def _svg_child_to_xml(node) -> str:
     attrs = " ".join(f'{k}="{v}"' for k, v in node.attrs.items())
     inner = "".join(_svg_child_to_xml(c) for c in node.children)
     if inner:
-        return f"<{node.name} {attrs}>{inner}</{node.name}>" if attrs else f"<{node.name}>{inner}</{node.name}>"
+        return (
+            f"<{node.name} {attrs}>{inner}</{node.name}>"
+            if attrs
+            else f"<{node.name}>{inner}</{node.name}>"
+        )
     return f"<{node.name} {attrs}/>" if attrs else f"<{node.name}/>"
 
 
-def _add_image_run(paragraph, node: Tag, parent_style: Dict[str, str]) -> None:
+def _add_image_run(paragraph, node: Tag, parent_style: dict[str, str]) -> None:
     src = node.get("src", "") or ""
     if not src:
         return
@@ -185,8 +199,8 @@ def _add_image_run(paragraph, node: Tag, parent_style: Dict[str, str]) -> None:
 
 
 def _extract_image_dimensions(
-    node: Tag, parent_style: Dict[str, str]
-) -> tuple[Optional[float], Optional[float]]:
+    node: Tag, parent_style: dict[str, str]
+) -> tuple[float | None, float | None]:
     style_map = _compute_style_map(node, [])
     width_value = style_map.get("width", "") or node.get("width", "")
     height_value = style_map.get("height", "") or node.get("height", "")
@@ -258,7 +272,7 @@ def _load_data_image(src: str) -> BytesIO | None:
     return BytesIO(data) if data else None
 
 
-def _decode_data_uri(encoded: str, is_base64: bool) -> Optional[bytes]:
+def _decode_data_uri(encoded: str, is_base64: bool) -> bytes | None:
     try:
         if is_base64:
             return base64.b64decode(encoded)
@@ -267,7 +281,7 @@ def _decode_data_uri(encoded: str, is_base64: bool) -> Optional[bytes]:
         return None
 
 
-def _convert_svg_to_png(svg_bytes: Optional[bytes]) -> BytesIO | None:
+def _convert_svg_to_png(svg_bytes: bytes | None) -> BytesIO | None:
     if not svg_bytes:
         return None
     try:
@@ -277,9 +291,7 @@ def _convert_svg_to_png(svg_bytes: Optional[bytes]) -> BytesIO | None:
         return None
 
 
-def _add_picture_safe(
-    run, image_stream, width_pt: Optional[float], height_pt: Optional[float]
-) -> None:
+def _add_picture_safe(run, image_stream, width_pt: float | None, height_pt: float | None) -> None:
     try:
         if width_pt is not None and height_pt is not None:
             run.add_picture(image_stream, width=Pt(width_pt), height=Pt(height_pt))

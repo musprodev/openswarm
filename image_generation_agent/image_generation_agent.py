@@ -1,9 +1,9 @@
 from agency_swarm import Agent, ModelSettings
 from agency_swarm.tools import LoadFileAttachment
 from openai.types.shared.reasoning import Reasoning
-from shared_tools import CopyFile
 
 from config import get_default_model, is_openai_provider
+from shared_tools import CopyFile
 
 
 def create_image_generation_agent() -> Agent:
@@ -29,4 +29,5 @@ def create_image_generation_agent() -> Agent:
 
 if __name__ == "__main__":
     from agency_swarm import Agency
+
     Agency(create_image_generation_agent()).terminal_demo()

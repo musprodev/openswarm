@@ -1,5 +1,3 @@
-from typing import Dict, Optional, Tuple
-
 from docx import Document
 from docx.enum.section import WD_ORIENT
 from docx.oxml import OxmlElement
@@ -7,7 +5,7 @@ from docx.oxml.ns import qn
 from docx.shared import Pt
 
 from .html_docx_constants import _PAGE_SIZES_PT
-from .html_docx_css import _parse_background_color, _parse_float, _parse_length_to_pt
+from .html_docx_css import _parse_background_color, _parse_length_to_pt
 
 _DEFAULT_DOCX_MARGIN_PT = 72.0
 
@@ -41,7 +39,7 @@ def _apply_page_settings(doc: Document, html_content: str) -> None:
                 section.left_margin = Pt(left)
 
 
-def _apply_page_background(doc: Document, body_style: Dict[str, str]) -> None:
+def _apply_page_background(doc: Document, body_style: dict[str, str]) -> None:
     bg_color = _parse_background_color(body_style)
     if not bg_color:
         return
@@ -72,14 +70,14 @@ def _extract_page_css(html_content: str) -> str:
     block_end = lower.find("}", block_start)
     if block_end == -1:
         return ""
-    return lower[block_start + 1:block_end]
+    return lower[block_start + 1 : block_end]
 
 
 def _extract_page_margin_box_pt(
     page_css: str,
-) -> Optional[Tuple[Optional[float], Optional[float], Optional[float], Optional[float]]]:
+) -> tuple[float | None, float | None, float | None, float | None] | None:
     top = right = bottom = left = None
-    shorthand: Optional[Tuple[float, float, float, float]] = None
+    shorthand: tuple[float, float, float, float] | None = None
 
     for rule in page_css.split(";"):
         if ":" not in rule:
@@ -108,7 +106,9 @@ def _extract_page_margin_box_pt(
     return top, right, bottom, left
 
 
-def _parse_margin_shorthand_pt(value: str) -> Optional[Tuple[float, float, float, float]]:
+def _parse_margin_shorthand_pt(
+    value: str,
+) -> tuple[float, float, float, float] | None:
     parts = [part for part in value.replace(",", " ").split() if part]
     if not parts:
         return None
@@ -129,7 +129,7 @@ def _parse_margin_shorthand_pt(value: str) -> Optional[Tuple[float, float, float
 
 def _extract_page_geometry_pt(
     html_content: str,
-) -> Tuple[float, float, float, float, float, float]:
+) -> tuple[float, float, float, float, float, float]:
     page_css = _extract_page_css(html_content)
     page_size = _extract_page_size_pt(page_css)
     if page_size is None:
@@ -159,7 +159,7 @@ def _extract_page_geometry_pt(
     )
 
 
-def _extract_page_size_pt(page_css: str) -> Optional[Tuple[float, float, bool]]:
+def _extract_page_size_pt(page_css: str) -> tuple[float, float, bool] | None:
     if "size" not in page_css:
         return None
     for rule in page_css.split(";"):

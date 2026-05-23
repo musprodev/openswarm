@@ -3,13 +3,10 @@
 import os
 import subprocess
 import tempfile
-from copy import deepcopy
 from pathlib import Path
-from typing import List, Optional
 
 from agency_swarm.tools import BaseTool
 from pydantic import Field
-
 
 
 class CheckSlideCanvasOverflow(BaseTool):
@@ -63,12 +60,12 @@ class CheckSlideCanvasOverflow(BaseTool):
 
         try:
             import numpy as np
-            from pdf2image import convert_from_path
             from PIL import Image
             from pptx import Presentation
             from pptx.dml.color import RGBColor
             from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE
             from pptx.util import Emu
+
         except ImportError as e:
             return f"Error: Missing required package: {e}"
 
@@ -79,17 +76,15 @@ class CheckSlideCanvasOverflow(BaseTool):
             return "Error: Could not import render_slides module"
 
         # Constants
-        EMU_PER_INCH = 914_400
-        PAD_RGB = (200, 200, 200)
+        emu_per_inch = 914_400
+        pad_rgb = (200, 200, 200)
 
         def px_to_emu(px: int, dpi: int) -> Emu:
-            return Emu(int(px * EMU_PER_INCH // dpi))
+            return Emu(int(px * emu_per_inch // dpi))
 
         # Calculate DPI
         try:
-            dpi = calc_dpi_via_ooxml(
-                str(input_path), self.max_width_px, self.max_height_px
-            )
+            dpi = calc_dpi_via_ooxml(str(input_path), self.max_width_px, self.max_height_px)
         except Exception as e:
             return f"Error calculating DPI: {e}"
 
@@ -129,7 +124,7 @@ class CheckSlideCanvasOverflow(BaseTool):
                         MSO_AUTO_SHAPE_TYPE.RECTANGLE, left, top, width, height
                     )
                     pad_shape.fill.solid()
-                    pad_shape.fill.fore_color.rgb = RGBColor(*PAD_RGB)
+                    pad_shape.fill.fore_color.rgb = RGBColor(*pad_rgb)
                     pad_shape.line.fill.background()
                     sp_tree.remove(pad_shape._element)
                     sp_tree.insert(2, pad_shape._element)
@@ -146,7 +141,7 @@ class CheckSlideCanvasOverflow(BaseTool):
             # Inspect images for overflow
             tol = max(1, round((300 - dpi) / 25)) if dpi < 300 else 0
             tol = min(tol, 10)
-            pad_colour = np.array(PAD_RGB, dtype=np.uint8)
+            pad_colour = np.array(pad_rgb, dtype=np.uint8)
             failures = []
 
             for idx, img_path in enumerate(img_paths, start=1):
@@ -160,9 +155,9 @@ class CheckSlideCanvasOverflow(BaseTool):
 
                 margins = [
                     arr[:, :pad_x, :],  # left
-                    arr[:, w - pad_x:, :],  # right
+                    arr[:, w - pad_x :, :],  # right
                     arr[:pad_y, :, :],  # top
-                    arr[h - pad_y:, :, :],  # bottom
+                    arr[h - pad_y :, :, :],  # bottom
                 ]
 
                 def is_clean(margin):

@@ -1,4 +1,5 @@
 """Shared model configuration helpers — read by all agents at startup."""
+
 import os
 
 
@@ -26,9 +27,10 @@ def _resolve(model: str):
     """
     if "/" not in model:
         return model
-    bare = model[len("litellm/"):] if model.startswith("litellm/") else model
+    bare = model[len("litellm/") :] if model.startswith("litellm/") else model
     try:
         from agency_swarm import LitellmModel  # noqa: PLC0415
+
         return LitellmModel(model=bare)
     except ImportError:
         return model

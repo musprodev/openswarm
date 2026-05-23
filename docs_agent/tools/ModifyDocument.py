@@ -2,7 +2,7 @@
 
 import traceback
 from pathlib import Path
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from agency_swarm.tools import BaseTool
 from pydantic import Field
@@ -54,7 +54,7 @@ class ModifyDocument(BaseTool):
     )
 
     # --- search_and_replace fields ---
-    replacements: Optional[list[dict[str, Any]]] = Field(
+    replacements: list[dict[str, Any]] | None = Field(
         default=None,
         description=(
             "Required for 'search_and_replace'. List of {old_content, new_content} dicts.\n"
@@ -68,17 +68,17 @@ class ModifyDocument(BaseTool):
     )
 
     # --- line operation fields ---
-    start_line: Optional[int] = Field(
+    start_line: int | None = Field(
         default=None,
         description="Starting line number (1-based). Required for line operations.",
     )
 
-    end_line: Optional[int] = Field(
+    end_line: int | None = Field(
         default=None,
         description="Ending line number (inclusive). Required for 'replace' and 'delete'.",
     )
 
-    new_content: Optional[str] = Field(
+    new_content: str | None = Field(
         default=None,
         description="New HTML content. Required for 'replace' and 'insert'.",
     )
@@ -111,17 +111,25 @@ class ModifyDocument(BaseTool):
             )
 
             if self.operation == "search_and_replace":
-                return self._search_and_replace(current_content, source_path, md_path, editing_markdown)
+                return self._search_and_replace(
+                    current_content, source_path, md_path, editing_markdown
+                )
 
             lines = current_content.split("\n")
             total_lines = len(lines)
 
             if self.operation == "replace":
-                return self._replace_lines(lines, total_lines, doc_name, source_path, md_path, editing_markdown)
+                return self._replace_lines(
+                    lines, total_lines, doc_name, source_path, md_path, editing_markdown
+                )
             if self.operation == "insert":
-                return self._insert_lines(lines, total_lines, doc_name, source_path, md_path, editing_markdown)
+                return self._insert_lines(
+                    lines, total_lines, doc_name, source_path, md_path, editing_markdown
+                )
             if self.operation == "delete":
-                return self._delete_lines(lines, total_lines, doc_name, source_path, md_path, editing_markdown)
+                return self._delete_lines(
+                    lines, total_lines, doc_name, source_path, md_path, editing_markdown
+                )
 
             return f"Error: Unknown operation '{self.operation}'."
 
@@ -130,7 +138,9 @@ class ModifyDocument(BaseTool):
 
     # ── search_and_replace ────────────────────────────────────────────────────
 
-    def _search_and_replace(self, content: str, source_path: Path, md_path: Path, editing_markdown: bool) -> str:
+    def _search_and_replace(
+        self, content: str, source_path: Path, md_path: Path, editing_markdown: bool
+    ) -> str:
         if not self.replacements:
             return "Error: 'replacements' is required for search_and_replace operation."
 
@@ -201,7 +211,9 @@ class ModifyDocument(BaseTool):
         if error:
             return error
 
-        position = f"after line {self.start_line}" if self.after else f"before line {self.start_line}"
+        position = (
+            f"after line {self.start_line}" if self.after else f"before line {self.start_line}"
+        )
         return (
             f"Inserted content {position} in '{doc_name}'. "
             f"Added {len(self.new_content.splitlines())} line(s). Total: {len(lines)} lines."
@@ -233,7 +245,9 @@ class ModifyDocument(BaseTool):
 
     # ── shared save ──────────────────────────────────────────────────────────
 
-    def _validate_and_save(self, content: str, source_path: Path, md_path: Path, editing_markdown: bool) -> str | None:
+    def _validate_and_save(
+        self, content: str, source_path: Path, md_path: Path, editing_markdown: bool
+    ) -> str | None:
         """Write content to disk. Returns an error string on failure, None on success."""
         if editing_markdown:
             md_path.write_text(content, encoding="utf-8")

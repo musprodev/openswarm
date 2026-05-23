@@ -48,7 +48,9 @@ class SlideScreenshot(BaseTool):
                 return f"Error: slide_index out of range (1-{len(slides)})"
             slide_path = slides[self.slide_index - 1].path
         else:
-            slide_name = self.slide_name if self.slide_name.endswith(".html") else f"{self.slide_name}.html"
+            slide_name = (
+                self.slide_name if self.slide_name.endswith(".html") else f"{self.slide_name}.html"
+            )
             slide_path = project_dir / slide_name
         if not slide_path.exists():
             return f"Error: Slide not found at {slide_path}"
@@ -62,5 +64,9 @@ class SlideScreenshot(BaseTool):
 
 
 if __name__ == "__main__":
-    tool = SlideScreenshot(project_name="claude_cowork_deck", slide_name="slide_01_title", output_image_path="test.jpg")
+    tool = SlideScreenshot(
+        project_name="claude_cowork_deck",
+        slide_name="slide_01_title",
+        output_image_path="test.jpg",
+    )
     print(tool.run())

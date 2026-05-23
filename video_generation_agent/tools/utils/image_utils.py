@@ -1,9 +1,10 @@
-import os
-import io
-import base64
-import logging
-from pathlib import Path
 import asyncio
+import base64
+import io
+import logging
+import os
+from pathlib import Path
+
 from PIL import Image
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ def create_filename(file_name, variant_num, num_variants, output_format):
 def load_image_by_name(image_name, images_dir, extensions=None):
     """Load an image by name, trying common extensions in order."""
     if extensions is None:
-        extensions = ['.png', '.jpg', '.jpeg', '.webp']
+        extensions = [".png", ".jpg", ".jpeg", ".webp"]
 
     for ext in extensions:
         potential_path = os.path.join(images_dir, f"{image_name}{ext}")
@@ -50,7 +51,11 @@ def load_image_by_name(image_name, images_dir, extensions=None):
             except Exception as e:
                 return None, None, f"Error loading image {potential_path}: {str(e)}"
 
-    return None, None, f"Error: Image file not found: {image_name} (tried {', '.join(extensions)})"
+    return (
+        None,
+        None,
+        f"Error: Image file not found: {image_name} (tried {', '.join(extensions)})",
+    )
 
 
 def extract_image_from_response(response):
@@ -70,9 +75,7 @@ def extract_image_from_response(response):
 def extract_image_parts_from_response(response):
     """Extract raw image bytes from a Gemini API response."""
     return [
-        part.inline_data.data
-        for part in response.candidates[0].content.parts
-        if part.inline_data
+        part.inline_data.data for part in response.candidates[0].content.parts if part.inline_data
     ]
 
 
@@ -109,7 +112,9 @@ def split_results_and_usage(raw_results):
     return results, usage_metadata
 
 
-def process_variant_result(variant_num, image, file_name, num_variants, compress_func, images_dir=None):
+def process_variant_result(
+    variant_num, image, file_name, num_variants, compress_func, images_dir=None
+):
     """Save a variant image and return its result dict."""
     save_dir = images_dir if images_dir is not None else IMAGES_DIR
     image_name, filename = create_filename(file_name, variant_num, num_variants, OUTPUT_FORMAT)
@@ -164,7 +169,7 @@ def combine_image_parts(image_parts):
 
     total_width = sum(img.width for img in images)
     max_height = max(img.height for img in images)
-    combined = Image.new('RGB', (total_width, max_height))
+    combined = Image.new("RGB", (total_width, max_height))
 
     x_offset = 0
     for img in images:

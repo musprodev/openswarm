@@ -1,5 +1,4 @@
 import os
-from typing import Optional
 
 from agency_swarm.tools import BaseTool
 from pydantic import Field
@@ -22,7 +21,7 @@ class EditFile(BaseTool):
         ...,
         description="The text to replace it with (must be different from old_string)",
     )
-    replace_all: Optional[bool] = Field(
+    replace_all: bool | None = Field(
         False, description="Replace all occurrences of old_string (default false)"
     )
 
@@ -38,13 +37,15 @@ class EditFile(BaseTool):
                 return f"Error: Path is not a file: {self.file_path}"
 
             try:
-                with open(self.file_path, "r", encoding="utf-8") as file:
+                with open(self.file_path, encoding="utf-8") as file:
                     content = file.read()
             except UnicodeDecodeError:
                 return f"Error: Unable to decode file {self.file_path}. It may be a binary file."
 
             if self.old_string not in content:
-                return f"Error: String to replace not found in file.\nString: {repr(self.old_string)}"
+                return (
+                    f"Error: String to replace not found in file.\nString: {repr(self.old_string)}"
+                )
 
             occurrences = content.count(self.old_string)
 
@@ -76,7 +77,9 @@ class EditFile(BaseTool):
             try:
                 with open(self.file_path, "w", encoding="utf-8") as file:
                     file.write(new_content)
-                return f"Successfully replaced {replacement_count} occurrence(s) in {self.file_path}"
+                return (
+                    f"Successfully replaced {replacement_count} occurrence(s) in {self.file_path}"
+                )
             except PermissionError:
                 return f"Error: Permission denied writing to file: {self.file_path}"
             except Exception as e:
@@ -102,12 +105,9 @@ Final line."""
     print(test_content)
     print("\n" + "=" * 50 + "\n")
 
-    tool = EditFile(
-        file_path=test_file_path, old_string="some text", new_string="REPLACED TEXT"
-    )
+    tool = EditFile(file_path=test_file_path, old_string="some text", new_string="REPLACED TEXT")
     result = tool.run()
     print(result)
 
     # Cleanup
     os.remove(test_file_path)
-

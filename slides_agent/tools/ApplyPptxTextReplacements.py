@@ -55,12 +55,12 @@ class ApplyPptxTextReplacements(BaseTool):
         """Apply replacements and save the updated presentation."""
         import sys
         from pathlib import Path as PathLib
-        
+
         # Add pptx/scripts to path for replace import
         scripts_dir = PathLib(__file__).parent.parent / "pptx" / "scripts"
         if str(scripts_dir) not in sys.path:
             sys.path.insert(0, str(scripts_dir))
-        
+
         from replace import apply_replacements  # type: ignore
 
         input_path = Path(self.input_pptx)

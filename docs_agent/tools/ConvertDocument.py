@@ -10,34 +10,36 @@ from pydantic import Field
 from weasyprint import HTML
 
 from .CreateDocument import CreateDocument
-from .utils.html_docx_core import html_to_docx
-from .utils.html_docx_images import embed_local_images
-from .utils.html_docx_playwright import auto_page_breaks
 
 # Base directory for all document files
 from .utils.doc_file_utils import get_project_dir, next_docx_version
+from .utils.html_docx_core import html_to_docx
+from .utils.html_docx_images import embed_local_images
+from .utils.html_docx_playwright import auto_page_breaks
 
 # Characters that PDF fonts commonly lack glyphs for.
 # Includes both proper Unicode typographic chars and ASCII control-char
 # corruptions that sometimes appear when the LLM emits smart-quote/dash
 # codepoints that get truncated to their low byte during serialisation.
-_UNICODE_TO_ASCII = str.maketrans({
-    "\u2018": "'",    # '  left single quotation mark
-    "\u2019": "'",    # '  right single quotation mark / apostrophe
-    "\u201c": '"',    # "  left double quotation mark
-    "\u201d": '"',    # "  right double quotation mark
-    "\u2013": "-",    # –  en dash
-    "\u2014": "--",   # —  em dash
-    "\u2026": "...",  # …  horizontal ellipsis
-    "\u00a0": " ",    # non-breaking space
-    # Corrupted forms: low-byte of U+2019 / U+2013 stored as control chars
-    "\x19":   "'",    # truncated U+2019 right-single-quote low byte
-    "\x11":   "-",    # truncated U+2011/U+2013 dash low byte
-    "\x18":   "'",    # truncated U+2018 left-single-quote low byte
-    "\x1c":   '"',    # truncated U+201C left-double-quote low byte
-    "\x1d":   '"',    # truncated U+201D right-double-quote low byte
-    "\x14":   "--",   # truncated U+2014 em-dash low byte
-})
+_UNICODE_TO_ASCII = str.maketrans(
+    {
+        "\u2018": "'",  # '  left single quotation mark
+        "\u2019": "'",  # '  right single quotation mark / apostrophe
+        "\u201c": '"',  # "  left double quotation mark
+        "\u201d": '"',  # "  right double quotation mark
+        "\u2013": "-",  # –  en dash
+        "\u2014": "--",  # —  em dash
+        "\u2026": "...",  # …  horizontal ellipsis
+        "\u00a0": " ",  # non-breaking space
+        # Corrupted forms: low-byte of U+2019 / U+2013 stored as control chars
+        "\x19": "'",  # truncated U+2019 right-single-quote low byte
+        "\x11": "-",  # truncated U+2011/U+2013 dash low byte
+        "\x18": "'",  # truncated U+2018 left-single-quote low byte
+        "\x1c": '"',  # truncated U+201C left-double-quote low byte
+        "\x1d": '"',  # truncated U+201D right-double-quote low byte
+        "\x14": "--",  # truncated U+2014 em-dash low byte
+    }
+)
 
 
 def _normalize_unicode(html: str) -> str:
@@ -47,44 +49,40 @@ def _normalize_unicode(html: str) -> str:
 class ConvertDocument(BaseTool):
     """
     Convert a document to different formats.
-    
+
     Supported conversions:
     - HTML → PDF (high-quality, print-ready)
     - HTML → DOCX (Word document)
     - HTML → Markdown (for documentation)
     - HTML → TXT (plain text)
-    
+
     The tool reads the .source.html file and converts it to the requested format.
     The original files are preserved - conversion creates a new file.
-    
+
     Use this tool to:
     - Create PDF versions for sharing/printing
     - Export to Markdown for documentation sites
     - Generate plain text versions
     """
-    
-    project_name: str = Field(
-        ...,
-        description="Name of the project folder containing the document"
-    )
-    
+
+    project_name: str = Field(..., description="Name of the project folder containing the document")
+
     document_name: str = Field(
-        ...,
-        description="Name of the document to convert (without extension)"
+        ..., description="Name of the document to convert (without extension)"
     )
-    
+
     output_format: Literal["pdf", "docx", "markdown", "txt"] = Field(
         ...,
         description="""Target format for conversion:
 - 'pdf': High-quality PDF (requires weasyprint)
 - 'docx': Word document
 - 'markdown': Markdown format (useful for documentation)
-- 'txt': Plain text (strips all formatting)"""
+- 'txt': Plain text (strips all formatting)""",
     )
-    
+
     overwrite: bool = Field(
         default=True,
-        description="If True (default), overwrites existing converted file. If False, returns error if file exists."
+        description="If True (default), overwrites existing converted file. If False, returns error if file exists.",
     )
 
     def run(self):
@@ -96,9 +94,7 @@ class ConvertDocument(BaseTool):
                 return f"Error: Project '{self.project_name}' not found."
 
             doc_name = (
-                self.document_name.replace(".html", "")
-                .replace(".docx", "")
-                .replace(".md", "")
+                self.document_name.replace(".html", "").replace(".docx", "").replace(".md", "")
             )
             source_path = project_dir / f"{doc_name}.source.html"
 
@@ -166,7 +162,7 @@ Path: {output_path}"""
             return message
         except Exception as e:
             return f"Error converting document: {str(e)}"
-    
+
     def _convert_to_pdf(self, html_content: str, output_path: Path):
         """Convert HTML to PDF using weasyprint."""
         HTML(string=_normalize_unicode(html_content)).write_pdf(output_path)
@@ -174,14 +170,14 @@ Path: {output_path}"""
     def _convert_to_docx(self, html_content: str, output_path: Path):
         """Convert HTML to DOCX using the internal converter."""
         html_to_docx(html_content, output_path)
-    
+
     def _convert_to_markdown(self, html_content: str, output_path: Path):
         """Convert HTML to Markdown."""
         converter = html2text.HTML2Text()
         converter.body_width = 0  # Don't wrap text
         markdown = converter.handle(html_content)
         output_path.write_text(markdown, encoding="utf-8")
-    
+
     def _convert_to_txt(self, html_content: str, output_path: Path):
         """Convert HTML to plain text."""
         soup = BeautifulSoup(html_content, "html.parser")
@@ -194,7 +190,7 @@ if __name__ == "__main__":
     print("TEST: ConvertDocument Tool")
     print("=" * 70)
     print()
-    
+
     print("Setup: Creating test document...")
     html_content = """<!DOCTYPE html>
 <html>
@@ -213,13 +209,13 @@ if __name__ == "__main__":
 </head>
 <body>
     <h1>Annual Report 2026</h1>
-    
+
     <h2>Executive Summary</h2>
     <p>
         This report provides an overview of our company's performance in 2026.
         We achieved significant growth across all key metrics.
     </p>
-    
+
     <h2>Financial Highlights</h2>
     <table>
         <tr>
@@ -241,7 +237,7 @@ if __name__ == "__main__":
             <td>+60%</td>
         </tr>
     </table>
-    
+
     <h2>Key Achievements</h2>
     <ul>
         <li>Launched new product line</li>
@@ -250,7 +246,7 @@ if __name__ == "__main__":
     </ul>
 </body>
 </html>"""
-    
+
     create_tool = CreateDocument(
         project_name="test_convert",
         document_name="annual_report",
@@ -259,63 +255,58 @@ if __name__ == "__main__":
     )
     print(create_tool.run())
     print()
-    
+
     # Test 1: Convert to PDF
     print("Test 1: Converting to PDF...")
     tool = ConvertDocument(
-        project_name="test_convert",
-        document_name="annual_report",
-        output_format="pdf"
+        project_name="test_convert", document_name="annual_report", output_format="pdf"
     )
     result = tool.run()
     print(result)
     print()
-    
+
     # Test 2: Convert to Markdown
     print("Test 2: Converting to Markdown...")
     tool = ConvertDocument(
         project_name="test_convert",
         document_name="annual_report",
-        output_format="markdown"
+        output_format="markdown",
     )
     result = tool.run()
     print(result)
     print()
-    
+
     # Test 3: Convert to TXT
     print("Test 3: Converting to plain text...")
     tool = ConvertDocument(
-        project_name="test_convert",
-        document_name="annual_report",
-        output_format="txt"
+        project_name="test_convert", document_name="annual_report", output_format="txt"
     )
     result = tool.run()
     print(result)
     print()
-    
+
     # Test 4: View markdown output
     if "✅" in result:
         print("Test 4: Viewing converted Markdown content...")
         from pathlib import Path
+
         md_path = get_project_dir("test_convert") / "annual_report.md"
         if md_path.exists():
             print("Markdown content:")
             print("-" * 70)
-            print(md_path.read_text(encoding='utf-8')[:500])
+            print(md_path.read_text(encoding="utf-8")[:500])
             print("...")
             print("-" * 70)
     print()
-    
+
     # Test 5: Convert non-existent document (should fail)
     print("Test 5: Attempting to convert non-existent document...")
     tool = ConvertDocument(
-        project_name="test_convert",
-        document_name="nonexistent",
-        output_format="pdf"
+        project_name="test_convert", document_name="nonexistent", output_format="pdf"
     )
     print(tool.run())
     print()
-    
+
     print("=" * 70)
     print("✅ ALL TESTS COMPLETE")
     print("=" * 70)

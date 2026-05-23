@@ -1,5 +1,3 @@
-from typing import Dict, Optional
-
 from bs4.element import Comment, NavigableString, Tag
 from docx.oxml.ns import qn
 from docx.shared import Pt
@@ -15,11 +13,10 @@ from .html_docx_paragraphs import (
 )
 from .html_docx_selectors import _compute_style_map
 
-
 _SKIP_TAGS = {"style", "script", "head", "meta", "link", "title", "noscript"}
 
 
-def _handle_block(node, target, css_rules, parent_style: Dict[str, str], table_auto_widths) -> None:
+def _handle_block(node, target, css_rules, parent_style: dict[str, str], table_auto_widths) -> None:
     target_container = _ensure_container(target)
     if isinstance(node, Comment):
         return
@@ -95,7 +92,7 @@ def _handle_block(node, target, css_rules, parent_style: Dict[str, str], table_a
         _handle_block(child, target_container, css_rules, parent_style, table_auto_widths)
 
 
-def _add_inline_runs(node, paragraph, css_rules, parent_style: Dict[str, str]) -> None:
+def _add_inline_runs(node, paragraph, css_rules, parent_style: dict[str, str]) -> None:
     if isinstance(node, Comment):
         return
     if isinstance(node, NavigableString):
@@ -141,7 +138,7 @@ def _add_inline_runs(node, paragraph, css_rules, parent_style: Dict[str, str]) -
         _add_inline_runs(child, paragraph, css_rules, current_style)
 
 
-def _transform_text(text: str, style_map: Dict[str, str]) -> str:
+def _transform_text(text: str, style_map: dict[str, str]) -> str:
     transform = style_map.get("text-transform", "").strip().lower()
     if transform == "uppercase":
         return text.upper()
@@ -159,8 +156,8 @@ def _has_block_children(node: Tag) -> bool:
     return False
 
 
-def _merge_styles(parent_style: Dict[str, str], own_style: Dict[str, str]) -> Dict[str, str]:
-    merged: Dict[str, str] = {}
+def _merge_styles(parent_style: dict[str, str], own_style: dict[str, str]) -> dict[str, str]:
+    merged: dict[str, str] = {}
     for key in _INHERITABLE_STYLES:
         if key in parent_style:
             merged[key] = parent_style[key]
@@ -169,7 +166,7 @@ def _merge_styles(parent_style: Dict[str, str], own_style: Dict[str, str]) -> Di
     return merged
 
 
-def _should_wrap_container(node: Tag, style_map: Dict[str, str]) -> bool:
+def _should_wrap_container(node: Tag, style_map: dict[str, str]) -> bool:
     if style_map.get("display", "").strip().lower() == "flex":
         return True
     if _parse_background_color(style_map) is not None:
@@ -184,7 +181,7 @@ def _should_wrap_container(node: Tag, style_map: Dict[str, str]) -> bool:
     return False
 
 
-def _add_container(target, node: Tag, style_map: Dict[str, str], css_rules, table_auto_widths):
+def _add_container(target, node: Tag, style_map: dict[str, str], css_rules, table_auto_widths):
     from .html_docx_tables import _apply_cell_styles, _apply_table_styles
 
     if style_map.get("display", "").strip().lower() == "flex":
@@ -217,7 +214,7 @@ def _ensure_container(target):
     return target
 
 
-def _ensure_paragraph(container, style: Optional[str] = None):
+def _ensure_paragraph(container, style: str | None = None):
     if hasattr(container, "paragraphs") and container.paragraphs:
         last = container.paragraphs[-1]
         if not last.text and len(last.runs) == 0 and _is_pristine_paragraph(last):
@@ -238,8 +235,8 @@ def _is_pristine_paragraph(paragraph) -> bool:
     p_pr = paragraph._p.find(qn("w:pPr"))
     if p_pr is None:
         return True
-    _ALLOWED_TAGS = {qn("w:pStyle"), qn("w:rPr")}
-    return all(child.tag in _ALLOWED_TAGS for child in p_pr)
+    _allowed_tags = {qn("w:pStyle"), qn("w:rPr")}
+    return all(child.tag in _allowed_tags for child in p_pr)
 
 
 def _normalize_text(text: str) -> str:

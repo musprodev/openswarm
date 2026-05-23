@@ -1,18 +1,26 @@
 import os
+
 from agency_swarm import Agent, ModelSettings
-from openai.types.shared.reasoning import Reasoning
 from agency_swarm.tools import (
-    WebSearchTool,
-    PersistentShellTool,
     IPythonInterpreter,
     LoadFileAttachment,
+    PersistentShellTool,
+    WebSearchTool,
 )
-from shared_tools import CopyFile, ExecuteTool, FindTools, ManageConnections, SearchTools
+from openai.types.shared.reasoning import Reasoning
 
 from config import get_default_model, is_openai_provider
+from shared_tools import (
+    CopyFile,
+    ExecuteTool,
+    FindTools,
+    ManageConnections,
+    SearchTools,
+)
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 instructions_path = os.path.join(current_dir, "instructions.md")
+
 
 def create_data_analyst() -> Agent:
     return Agent(

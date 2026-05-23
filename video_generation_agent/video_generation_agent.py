@@ -1,9 +1,9 @@
 from agency_swarm import Agent, ModelSettings
 from agency_swarm.tools import LoadFileAttachment
 from openai.types.shared.reasoning import Reasoning
-from shared_tools import CopyFile
 
 from config import get_default_model, is_openai_provider
+from shared_tools import CopyFile
 
 
 def create_video_generation_agent() -> Agent:

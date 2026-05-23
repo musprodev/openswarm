@@ -1,27 +1,30 @@
 #!/usr/bin/env python3
-import json
-import os
 import argparse
+import json
 from pathlib import Path
 
 MEMORY_DIR = Path("memory")
 
+
 def ensure_dir():
     MEMORY_DIR.mkdir(parents=True, exist_ok=True)
+
 
 def load_json(filepath):
     if not filepath.exists():
         return {}
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         try:
             return json.load(f)
         except json.JSONDecodeError:
             return {}
 
+
 def save_json(filepath, data):
     ensure_dir()
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
+
 
 def set_global_pref(key, value):
     filepath = MEMORY_DIR / "global_preferences.json"
@@ -29,6 +32,7 @@ def set_global_pref(key, value):
     data[key] = value
     save_json(filepath, data)
     print(f"Set global preference: {key} = {value}")
+
 
 def get_global_pref(key=None):
     filepath = MEMORY_DIR / "global_preferences.json"
@@ -39,6 +43,7 @@ def get_global_pref(key=None):
     else:
         print(json.dumps(data, indent=2))
 
+
 def add_course_context(course_id, key, value):
     filepath = MEMORY_DIR / f"{course_id}_context.json"
     data = load_json(filepath)
@@ -46,18 +51,24 @@ def add_course_context(course_id, key, value):
     save_json(filepath, data)
     print(f"Added context to {course_id}: {key} = {value}")
 
+
 def get_course_context(course_id, key=None):
     filepath = MEMORY_DIR / f"{course_id}_context.json"
     data = load_json(filepath)
     if not data:
         print(f"No context found for course {course_id}.")
         return
-    
+
     if key:
         val = data.get(key)
-        print(json.dumps({key: val}, indent=2) if val else f"Context '{key}' not found in {course_id}.")
+        print(
+            json.dumps({key: val}, indent=2)
+            if val
+            else f"Context '{key}' not found in {course_id}."
+        )
     else:
         print(json.dumps(data, indent=2))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Memory and Context Retriever for OpenCode Swarm")

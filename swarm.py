@@ -1,9 +1,13 @@
 import os
+
 from dotenv import load_dotenv
+
 from agents import set_tracing_disabled, set_tracing_export_api_key
 from patches.patch_agency_swarm_dual_comms import apply_dual_comms_patch
 from patches.patch_file_attachment_refs import apply_file_attachment_reference_patch
-from patches.patch_ipython_interpreter_composio import apply_ipython_composio_context_patch
+from patches.patch_ipython_interpreter_composio import (
+    apply_ipython_composio_context_patch,
+)
 from patches.patch_utf8_file_reads import apply_utf8_file_read_patch
 
 load_dotenv()
@@ -24,14 +28,14 @@ def create_agency(load_threads_callback=None):
     from agency_swarm import Agency
     from agency_swarm.tools import Handoff, SendMessage
 
-    from orchestrator import create_orchestrator
-    from virtual_assistant import create_virtual_assistant
-    from deep_research import create_deep_research
     from data_analyst_agent import create_data_analyst
-    from slides_agent import create_slides_agent
+    from deep_research import create_deep_research
     from docs_agent import create_docs_agent
-    from video_generation_agent import create_video_generation_agent
     from image_generation_agent import create_image_generation_agent
+    from orchestrator import create_orchestrator
+    from slides_agent import create_slides_agent
+    from video_generation_agent import create_video_generation_agent
+    from virtual_assistant import create_virtual_assistant
 
     orchestrator = create_orchestrator()
     virtual_assistant = create_virtual_assistant()
@@ -78,6 +82,7 @@ def create_agency(load_threads_callback=None):
     )
 
     return agency
+
 
 if __name__ == "__main__":
     agency = create_agency()

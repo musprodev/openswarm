@@ -2,16 +2,15 @@
 
 import logging
 import os
-from typing import Optional, Literal
+from typing import Literal
 
+import numpy as np
+from agency_swarm import BaseTool
+from moviepy.editor import CompositeVideoClip, ImageClip, VideoFileClip
+from PIL import Image, ImageDraw, ImageFont
 from pydantic import Field, field_validator
 
-from agency_swarm import BaseTool
 from shared_tools.openai_client_utils import get_openai_client
-from moviepy.editor import VideoFileClip, ImageClip, CompositeVideoClip
-from PIL import Image, ImageDraw, ImageFont
-import numpy as np
-from openai import OpenAI
 
 from .utils.video_utils import get_videos_dir
 
@@ -23,7 +22,7 @@ class AddSubtitles(BaseTool):
     Add animated subtitles to a video.
     Uses OpenAI Whisper API to automatically transcribe audio and extract word-level timestamps.
     Subtitles appear word-by-word or phrase-by-phrase with highlighting effect.
-    
+
     Videos are saved to: mnt/{product_name}/generated_videos/
     """
 
@@ -39,7 +38,7 @@ class AddSubtitles(BaseTool):
         ...,
         description="Original script of the video to provide guidance for the subtitles. Should be provided in a single text block, without any formatting.",
     )
-    output_name: Optional[str] = Field(
+    output_name: str | None = Field(
         None,
         description="Output video name (without extension). If not provided, adds '_subtitled' to original name",
     )
@@ -113,55 +112,54 @@ class AddSubtitles(BaseTool):
                 temperature=0.0,
             )
 
-
         # Extract words with timestamps from API response and add punctuation
         words_with_timing = []
 
         if hasattr(transcript, "words") and transcript.words:
             # Character replacements for Unicode normalization
             char_replacements = {
-                '\u2014': '-',  # Em dash
-                '\u2013': '-',  # En dash
-                '\u2212': '-',  # Minus sign
-                '\u2010': '-',  # Hyphen
-                '\u2011': '-',  # Non-breaking hyphen
-                '\ufe63': '-',  # Small hyphen-minus
-                '\uff0d': '-',  # Fullwidth hyphen-minus
-                '\u2019': "'",  # Right single quote
-                '\u2018': "'",  # Left single quote
-                '\u2032': "'",  # Prime
-                '\u2035': "'"   # Reversed prime
+                "\u2014": "-",  # Em dash
+                "\u2013": "-",  # En dash
+                "\u2212": "-",  # Minus sign
+                "\u2010": "-",  # Hyphen
+                "\u2011": "-",  # Non-breaking hyphen
+                "\ufe63": "-",  # Small hyphen-minus
+                "\uff0d": "-",  # Fullwidth hyphen-minus
+                "\u2019": "'",  # Right single quote
+                "\u2018": "'",  # Left single quote
+                "\u2032": "'",  # Prime
+                "\u2035": "'",  # Reversed prime
             }
-            
+
             # Split full text into words (preserves punctuation)
             full_text_words = transcript.text.split()
-            
+
             # Match API words with full text words to get punctuation
             full_text_idx = 0
-            
+
             for word_info in transcript.words:
                 word = word_info.word.strip()
-                
+
                 # Try to find matching word in full text (with punctuation)
                 final_word = word
                 if full_text_idx < len(full_text_words):
                     full_word = full_text_words[full_text_idx]
                     # Check if the word matches (case-insensitive, ignoring punctuation)
-                    if word.lower() == full_word.strip('.,!?;:').lower():
+                    if word.lower() == full_word.strip(".,!?;:").lower():
                         final_word = full_word  # Use the version with punctuation
                         full_text_idx += 1
                     else:
                         # Try to find it in the next few words
                         for i in range(full_text_idx, min(full_text_idx + 3, len(full_text_words))):
-                            if word.lower() == full_text_words[i].strip('.,!?;:').lower():
+                            if word.lower() == full_text_words[i].strip(".,!?;:").lower():
                                 final_word = full_text_words[i]
                                 full_text_idx = i + 1
                                 break
-                
+
                 # Normalize Unicode characters to ASCII equivalents
                 for old_char, new_char in char_replacements.items():
                     final_word = final_word.replace(old_char, new_char)
-                
+
                 words_with_timing.append(
                     {
                         "word": final_word,
@@ -175,7 +173,6 @@ class AddSubtitles(BaseTool):
                 "No words detected in audio. Video may not have speech or audio track."
             )
 
-
         chunks = []
         i = 0
 
@@ -184,21 +181,14 @@ class AddSubtitles(BaseTool):
             words_added = 0
 
             # Add words until we reach max words_per_clip or hit a sentence ending
-            while (
-                i + words_added < len(words_with_timing)
-                and words_added < self.words_per_clip
-            ):
+            while i + words_added < len(words_with_timing) and words_added < self.words_per_clip:
                 word_data = words_with_timing[i + words_added]
                 chunk_words.append(word_data)
                 words_added += 1
 
                 # Check if this word ends a sentence (period, exclamation, question mark)
                 word_text = word_data["word"].strip()
-                if (
-                    word_text.endswith(".")
-                    or word_text.endswith("!")
-                    or word_text.endswith("?")
-                ):
+                if word_text.endswith(".") or word_text.endswith("!") or word_text.endswith("?"):
                     # End chunk here
                     break
 
@@ -214,7 +204,6 @@ class AddSubtitles(BaseTool):
             else:
                 # Safety: should never happen, but just in case
                 i += 1
-
 
         if self.position == "center":
             y_position = "center"
@@ -342,7 +331,7 @@ class AddSubtitles(BaseTool):
 
         subtitle_clips = []
 
-        for i, chunk in enumerate(chunks):
+        for chunk in chunks:
             # Bold, uppercase for visibility
             text = chunk["text"].upper()
             start_time = chunk["start"]
@@ -350,9 +339,7 @@ class AddSubtitles(BaseTool):
 
             try:
                 # Create text image using PIL
-                text_img = create_text_image(
-                    text, self.font_size, video_width - 100, text_color
-                )
+                text_img = create_text_image(text, self.font_size, video_width - 100, text_color)
 
                 # Create ImageClip from the text image
                 txt_clip = ImageClip(text_img)
@@ -407,6 +394,7 @@ class AddSubtitles(BaseTool):
             f"  - Style: {self.highlight_color.upper()} text, {self.words_per_clip} words per clip\n"
             f"  - Transcribed: {transcript.text[:200]}..."
         )
+
 
 if __name__ == "__main__":
     # Test case

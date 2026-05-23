@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import re
-from typing import Iterable, List
+from collections.abc import Iterable
 
 from bs4 import BeautifulSoup
-
 
 UNSUPPORTED_ISSUES_ORDER = [
     "flex or grid layout (display: flex/grid)",
@@ -40,7 +39,7 @@ _ISSUE_TO_PATTERNS = {
 }
 
 
-def find_unsupported_html(html_content: str) -> List[str]:
+def find_unsupported_html(html_content: str) -> list[str]:
     issues = set()
     soup = BeautifulSoup(html_content, "html.parser")
 
@@ -86,7 +85,7 @@ def _scan_css_selectors(css_text: str, issues: set) -> None:
                 return
 
 
-def _iter_selectors(css_text: str) -> Iterable[List[str]]:
+def _iter_selectors(css_text: str) -> Iterable[list[str]]:
     for match in re.finditer(r"([^{]+)\{[^}]*\}", css_text, re.DOTALL):
         selector_text = match.group(1)
         selectors = [s.strip() for s in selector_text.split(",") if s.strip()]

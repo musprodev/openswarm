@@ -1,5 +1,3 @@
-from typing import Dict, List, Optional, Tuple
-
 from bs4.element import Tag
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml import OxmlElement
@@ -17,7 +15,6 @@ from .html_docx_css import (
     _resolve_padding,
 )
 from .html_docx_paragraphs import (
-    _add_list_indent_padding,
     _add_paragraph_indent,
     _add_paragraph_spacing,
 )
@@ -27,7 +24,11 @@ from .html_docx_shared import _remove_trailing_empty_paragraph
 
 
 def _handle_table(
-    table_node: Tag, target_container, css_rules, parent_style: Dict[str, str], table_auto_widths
+    table_node: Tag,
+    target_container,
+    css_rules,
+    parent_style: dict[str, str],
+    table_auto_widths,
 ) -> None:
     table_style = _merge_styles(parent_style, _compute_style_map(table_node, css_rules))
     parent_padding = _resolve_padding(parent_style)
@@ -73,7 +74,9 @@ def _handle_table(
     _apply_table_parent_padding(docx_table, parent_style)
     if _should_prevent_row_split(table_node, table_style):
         _set_table_cant_split(docx_table)
-    column_widths_pt = _extract_table_column_widths(table_node, table_style, max_cols, table_auto_widths)
+    column_widths_pt = _extract_table_column_widths(
+        table_node, table_style, max_cols, table_auto_widths
+    )
     if not column_widths_pt:
         column_widths_pt = _extract_auto_widths(table_node, table_auto_widths, max_cols)
     if column_widths_pt:
@@ -82,9 +85,7 @@ def _handle_table(
     is_collapsed = table_style.get("border-collapse", "").strip().lower() == "collapse"
     collapsed_borders: dict = {}
     if is_collapsed:
-        collapsed_borders = _collect_collapsed_borders(
-            row_cells, row_colspans, max_cols, css_rules
-        )
+        collapsed_borders = _collect_collapsed_borders(row_cells, row_colspans, max_cols, css_rules)
 
     total_rows = len(row_cells)
     for row_idx, cells in enumerate(row_cells):
@@ -125,13 +126,16 @@ def _handle_table(
                 and not cell_style.get("padding-right")
                 and not cell_style.get("padding")
             ):
-                cell_style = {**cell_style, "padding-right": f"{parent_padding_right}pt"}
+                cell_style = {
+                    **cell_style,
+                    "padding-right": f"{parent_padding_right}pt",
+                }
 
             # For border-collapse:collapse tables, interior borders are handled by
             # tblBorders/insideH+insideV (applied once after the loop). Suppress cell-level
             # borders on interior edges so they don't double up with the table-level lines.
             # Outer-edge cells keep their cell-level borders (one side each).
-            suppress_borders: Optional[set] = None
+            suppress_borders: set | None = None
             if is_collapsed:
                 is_first_row = row_idx == 0
                 is_last_row = row_idx == total_rows - 1
@@ -148,10 +152,7 @@ def _handle_table(
                     suppress_borders.add("right")
 
             _apply_cell_styles(docx_cell, cell_style, suppress_borders=suppress_borders)
-            if (
-                len(cells) == 2
-                and cell_style.get("text-align", "").strip().lower() == "right"
-            ):
+            if len(cells) == 2 and cell_style.get("text-align", "").strip().lower() == "right":
                 _set_cell_no_wrap(docx_cell)
                 _set_cell_width(docx_cell, _estimate_right_column_width_pt(column_widths_pt))
             if column_widths_pt and col_idx < len(column_widths_pt):
@@ -162,11 +163,11 @@ def _handle_table(
 
             from .html_docx_blocks import (
                 _add_inline_runs,
+                _ensure_paragraph,
                 _handle_block,
                 _has_block_children,
             )
             from .html_docx_paragraphs import _apply_paragraph_style
-            from .html_docx_blocks import _ensure_paragraph
 
             # Cell borders are applied at the cell level (w:tcBorders). Strip
             # border-* from the style passed to paragraph content so it doesn't
@@ -199,10 +200,10 @@ def _handle_table(
 
 def _extract_table_column_widths(
     table_node: Tag,
-    table_style: Dict[str, str],
+    table_style: dict[str, str],
     column_count: int,
     table_auto_widths=None,
-) -> Optional[List[float]]:
+) -> list[float] | None:
     if column_count <= 0:
         return None
     rows = table_node.find_all("tr", recursive=False)
@@ -212,12 +213,12 @@ def _extract_table_column_widths(
     if not rows:
         return None
 
-    widths: List[Optional[float]] | None = None
+    widths: list[float | None] | None = None
     for row in rows:
         cells = [cell for cell in row.find_all(["td", "th"], recursive=False)]
         if not cells:
             continue
-        candidate_widths: List[Optional[float]] = []
+        candidate_widths: list[float | None] = []
         for cell in cells:
             style_map = _compute_style_map(cell, [])
             width_value = style_map.get("width", "") or cell.get("width", "")
@@ -246,10 +247,7 @@ def _extract_table_column_widths(
             # No context available — let _extract_auto_widths handle this table.
             return None
 
-    resolved: List[float | None] = []
-    fixed_total = sum(w for w in widths if isinstance(w, float) and w > 1.0)
-    remaining = max(total_width_pt - fixed_total, 0)
-
+    resolved: list[float | None] = []
     for width in widths:
         if width is None:
             resolved.append(None)
@@ -274,7 +272,7 @@ def _extract_table_column_widths(
     return [float(value) for value in resolved[:column_count]]
 
 
-def _apply_table_column_widths(table, widths_pt: List[float]) -> None:
+def _apply_table_column_widths(table, widths_pt: list[float]) -> None:
     widths_pt = _adjust_column_widths_for_parent_padding(table, widths_pt)
     widths_pt = _adjust_column_widths_for_outer_borders(table, widths_pt)
     _update_table_grid(table, widths_pt)
@@ -284,7 +282,7 @@ def _apply_table_column_widths(table, widths_pt: List[float]) -> None:
                 _set_cell_width(cell, widths_pt[idx])
 
 
-def _update_table_grid(table, widths_pt: List[float]) -> None:
+def _update_table_grid(table, widths_pt: list[float]) -> None:
     """Replace w:tblGrid with column definitions matching widths_pt.
 
     python-docx creates w:tblGrid with equal-width columns when add_table() is
@@ -325,14 +323,14 @@ def _set_cell_no_wrap(cell) -> None:
         tc_pr.append(no_wrap)
 
 
-def _estimate_right_column_width_pt(column_widths_pt: Optional[List[float]]) -> float:
+def _estimate_right_column_width_pt(column_widths_pt: list[float] | None) -> float:
     if column_widths_pt and len(column_widths_pt) >= 2:
         return max(column_widths_pt[1], 160.0)
     return 180.0
 
 
-def _merge_styles(parent_style: Dict[str, str], own_style: Dict[str, str]) -> Dict[str, str]:
-    merged: Dict[str, str] = {}
+def _merge_styles(parent_style: dict[str, str], own_style: dict[str, str]) -> dict[str, str]:
+    merged: dict[str, str] = {}
     for key in _INHERITABLE_STYLES:
         if key in parent_style:
             merged[key] = parent_style[key]
@@ -341,7 +339,7 @@ def _merge_styles(parent_style: Dict[str, str], own_style: Dict[str, str]) -> Di
     return merged
 
 
-def _apply_table_styles(table, style_map: Dict[str, str]) -> None:
+def _apply_table_styles(table, style_map: dict[str, str]) -> None:
     width_value = style_map.get("width", "") or style_map.get("max-width", "")
     width_pt = _parse_px_to_pt(width_value)
     if width_pt:
@@ -370,7 +368,7 @@ def _set_table_width(table, width_pt: float) -> None:
     tbl_w.set(qn("w:w"), str(int(width_pt * 20)))
 
 
-def _apply_table_border(table, style_map: Dict[str, str]) -> None:
+def _apply_table_border(table, style_map: dict[str, str]) -> None:
     border = style_map.get("border", "")
     if not border:
         return
@@ -423,7 +421,12 @@ def _set_table_default_cell_margins(
     if tbl_cell_mar is None:
         tbl_cell_mar = OxmlElement("w:tblCellMar")
         tbl_pr.append(tbl_cell_mar)
-    for side, value in [("top", top), ("right", right), ("bottom", bottom), ("left", left)]:
+    for side, value in [
+        ("top", top),
+        ("right", right),
+        ("bottom", bottom),
+        ("left", left),
+    ]:
         elem = tbl_cell_mar.find(qn(f"w:{side}"))
         if elem is None:
             elem = OxmlElement(f"w:{side}")
@@ -449,7 +452,7 @@ def _set_table_cell_spacing(table, spacing_pt: float) -> None:
     tbl_cell_spacing.set(qn("w:type"), "dxa")
 
 
-def _should_center_table(style_map: Dict[str, str]) -> bool:
+def _should_center_table(style_map: dict[str, str]) -> bool:
     margin = style_map.get("margin", "")
     if margin and "auto" in margin:
         return True
@@ -462,9 +465,9 @@ def _should_center_table(style_map: Dict[str, str]) -> bool:
 
 def _apply_cell_styles(
     cell,
-    style_map: Dict[str, str],
+    style_map: dict[str, str],
     apply_padding: bool = True,
-    suppress_borders: Optional[set] = None,
+    suppress_borders: set | None = None,
 ) -> None:
     bg_color = _parse_background_color(style_map)
     if bg_color:
@@ -479,10 +482,10 @@ def _apply_cell_styles(
     bottom_border = _parse_border(style_map.get("border-bottom", ""))
     left_border = _parse_border(style_map.get("border-left", ""))
 
-    effective_top    = (top_border    or border) if "top"    not in suppress else None
-    effective_right  = (right_border  or border) if "right"  not in suppress else None
+    effective_top = (top_border or border) if "top" not in suppress else None
+    effective_right = (right_border or border) if "right" not in suppress else None
     effective_bottom = (bottom_border or border) if "bottom" not in suppress else None
-    effective_left   = (left_border   or border) if "left"   not in suppress else None
+    effective_left = (left_border or border) if "left" not in suppress else None
 
     if any([effective_top, effective_right, effective_bottom, effective_left]):
         _set_cell_border(
@@ -513,7 +516,7 @@ def _apply_cell_styles(
         _set_cell_margins(cell, 0, 0, 0, 0)
 
 
-def _apply_cell_vertical_alignment(cell, style_map: Dict[str, str]) -> None:
+def _apply_cell_vertical_alignment(cell, style_map: dict[str, str]) -> None:
     vertical_align = style_map.get("vertical-align", "").strip().lower()
     if not vertical_align:
         return
@@ -531,7 +534,7 @@ def _apply_cell_vertical_alignment(cell, style_map: Dict[str, str]) -> None:
     v_align.set(qn("w:val"), val)
 
 
-def _apply_cell_padding_spacing(cell, padding: Tuple[float, float, float, float]) -> None:
+def _apply_cell_padding_spacing(cell, padding: tuple[float, float, float, float]) -> None:
     paragraphs = [p for p in cell.paragraphs if _is_direct_cell_paragraph(cell, p)]
     if not paragraphs:
         return
@@ -541,17 +544,17 @@ def _apply_cell_padding_spacing(cell, padding: Tuple[float, float, float, float]
     if bottom:
         _add_paragraph_spacing(paragraphs[-1], after_pt=bottom * _PADDING_SCALE)
     if left or right:
-            for paragraph in paragraphs:
-                if paragraph.style and paragraph.style.name == "List Bullet":
-                    # "List Bullet" indentation is controlled by the numbering definition;
-                    # adding paragraph-level w:ind here overrides it and misaligns bullets.
-                    pass
-                else:
-                    _add_paragraph_indent(
-                        paragraph,
-                        left_pt=left * _PADDING_SCALE,
-                        right_pt=right * _PADDING_SCALE,
-                    )
+        for paragraph in paragraphs:
+            if paragraph.style and paragraph.style.name == "List Bullet":
+                # "List Bullet" indentation is controlled by the numbering definition;
+                # adding paragraph-level w:ind here overrides it and misaligns bullets.
+                pass
+            else:
+                _add_paragraph_indent(
+                    paragraph,
+                    left_pt=left * _PADDING_SCALE,
+                    right_pt=right * _PADDING_SCALE,
+                )
 
 
 def _cell_has_only_tables(cell) -> bool:
@@ -573,9 +576,7 @@ def _is_direct_cell_paragraph(cell, paragraph) -> bool:
         return True
 
 
-def _apply_nested_table_vertical_padding(
-    cell, padding: Tuple[float, float, float, float]
-) -> None:
+def _apply_nested_table_vertical_padding(cell, padding: tuple[float, float, float, float]) -> None:
     if not cell.tables:
         return
     top, _right, bottom, _left = _normalize_padding(padding)
@@ -606,10 +607,10 @@ def _set_cell_shading(cell, color_hex: str) -> None:
 
 def _set_cell_border(
     cell,
-    top: Optional[Tuple[float, str]] = None,
-    right: Optional[Tuple[float, str]] = None,
-    bottom: Optional[Tuple[float, str]] = None,
-    left: Optional[Tuple[float, str]] = None,
+    top: tuple[float, str] | None = None,
+    right: tuple[float, str] | None = None,
+    bottom: tuple[float, str] | None = None,
+    left: tuple[float, str] | None = None,
 ) -> None:
     tc_pr = cell._tc.get_or_add_tcPr()
     borders = tc_pr.find(qn("w:tcBorders"))
@@ -658,9 +659,7 @@ def _apply_table_outer_borders(table, width_pt: float, color: str) -> None:
                 )
 
 
-def _adjust_column_widths_for_outer_borders(
-    table, widths_pt: List[float]
-) -> List[float]:
+def _adjust_column_widths_for_outer_borders(table, widths_pt: list[float]) -> list[float]:
     border_width = getattr(table, "_docs_border_width_pt", 0)
     if border_width <= 0 or not widths_pt:
         return widths_pt
@@ -673,7 +672,7 @@ def _adjust_column_widths_for_outer_borders(
     return adjusted
 
 
-def _apply_table_parent_padding(table, parent_style: Dict[str, str]) -> None:
+def _apply_table_parent_padding(table, parent_style: dict[str, str]) -> None:
     padding = _resolve_padding(parent_style)
     if not padding:
         return
@@ -705,9 +704,7 @@ def _set_table_indent(table, indent_pt: float) -> None:
     tbl_ind.set(qn("w:type"), "dxa")
 
 
-def _adjust_column_widths_for_parent_padding(
-    table, widths_pt: List[float]
-) -> List[float]:
+def _adjust_column_widths_for_parent_padding(table, widths_pt: list[float]) -> list[float]:
     padding = getattr(table, "_docs_parent_padding_pt", None)
     if not padding:
         return widths_pt
@@ -729,7 +726,12 @@ def _set_cell_margins(cell, top: float, right: float, bottom: float, left: float
         tc_mar = OxmlElement("w:tcMar")
         tc_pr.append(tc_mar)
 
-    for side, value in [("top", top), ("right", right), ("bottom", bottom), ("left", left)]:
+    for side, value in [
+        ("top", top),
+        ("right", right),
+        ("bottom", bottom),
+        ("left", left),
+    ]:
         elem = tc_mar.find(qn(f"w:{side}"))
         if elem is None:
             elem = OxmlElement(f"w:{side}")
@@ -738,7 +740,7 @@ def _set_cell_margins(cell, top: float, right: float, bottom: float, left: float
         elem.set(qn("w:type"), "dxa")
 
 
-def _should_prevent_row_split(table_node: Tag, style_map: Dict[str, str]) -> bool:
+def _should_prevent_row_split(table_node: Tag, style_map: dict[str, str]) -> bool:
     """Return True if w:cantSplit should be applied to this table's rows.
 
     Triggers when:
@@ -768,7 +770,7 @@ def _collect_collapsed_borders(
     row_colspans: list[list[int]],
     max_cols: int,
     css_rules,
-) -> dict[str, Optional[tuple[float, str]]]:
+) -> dict[str, tuple[float, str] | None]:
     """Collect all six border positions for a border-collapse:collapse table.
 
     Returns a dict with keys: inside_h, inside_v, top, bottom, left, right.
@@ -778,7 +780,7 @@ def _collect_collapsed_borders(
     directions into w:tblBorders without mixing in any cell-level tcBorders.
     """
 
-    def first_cell_border(cells, *props) -> Optional[tuple[float, str]]:
+    def first_cell_border(cells, *props) -> tuple[float, str] | None:
         for cell_node in cells:
             style = _compute_style_map(cell_node, css_rules)
             for prop in props:
@@ -791,8 +793,8 @@ def _collect_collapsed_borders(
                 return val
         return None
 
-    inside_h: Optional[tuple[float, str]] = None
-    inside_v: Optional[tuple[float, str]] = None
+    inside_h: tuple[float, str] | None = None
+    inside_v: tuple[float, str] | None = None
 
     # interior-H: border-bottom on non-last rows, then border-top on non-first rows
     for cells in row_cells[:-1]:
@@ -872,7 +874,7 @@ def _collect_collapsed_borders(
 
 def _apply_collapsed_table_borders(
     table,
-    collapsed_borders: dict[str, Optional[tuple[float, str]]],
+    collapsed_borders: dict[str, tuple[float, str] | None],
 ) -> None:
     """Write all six border positions into w:tblBorders for a border-collapse:collapse table.
 
@@ -915,10 +917,10 @@ def _apply_collapsed_table_borders(
 
 def _add_cell_margins(
     cell,
-    top: Optional[float] = None,
-    right: Optional[float] = None,
-    bottom: Optional[float] = None,
-    left: Optional[float] = None,
+    top: float | None = None,
+    right: float | None = None,
+    bottom: float | None = None,
+    left: float | None = None,
 ) -> None:
     tc_pr = cell._tc.get_or_add_tcPr()
     tc_mar = tc_pr.find(qn("w:tcMar"))
@@ -926,7 +928,12 @@ def _add_cell_margins(
         tc_mar = OxmlElement("w:tcMar")
         tc_pr.append(tc_mar)
 
-    for side, value in [("top", top), ("right", right), ("bottom", bottom), ("left", left)]:
+    for side, value in [
+        ("top", top),
+        ("right", right),
+        ("bottom", bottom),
+        ("left", left),
+    ]:
         if value is None:
             continue
         elem = tc_mar.find(qn(f"w:{side}"))

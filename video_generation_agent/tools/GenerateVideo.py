@@ -1,42 +1,45 @@
 """Video generation tool supporting Sora (OpenAI), Veo (Google Gemini), and Seedance (fal.ai) models."""
 
-from typing import Literal, Optional
 import asyncio
 import logging
+import mimetypes
 import os
 import re
-from dotenv import load_dotenv
-import mimetypes
+from io import BytesIO
 from pathlib import Path
+from typing import Literal
 from urllib.parse import urlparse
 
 import fal_client
 import httpx
-from openai import OpenAI
-from pydantic import Field, field_validator, model_validator
-from google.genai.types import GenerateVideosConfig, Image, VideoGenerationReferenceImage
-from PIL import Image as PILImage
-from io import BytesIO
-
 from agency_swarm import BaseTool, ToolOutputText
+from dotenv import load_dotenv
+from google.genai.types import (
+    GenerateVideosConfig,
+    Image,
+    VideoGenerationReferenceImage,
+)
+from PIL import Image as PILImage
+from pydantic import Field, field_validator, model_validator
+
 from shared_tools.model_availability import video_model_availability_message
 from shared_tools.openai_client_utils import get_openai_client
 
+from .utils.image_utils import get_images_dir, load_image_by_name
 from .utils.video_utils import (
     ensure_not_blank,
     extract_last_frame,
     generate_spritesheet,
     get_gemini_client,
     get_videos_dir,
-    is_veo_model,
-    is_sora_model,
     is_seedance_model,
+    is_sora_model,
+    is_veo_model,
     resolve_input_reference,
-    validate_resolution,
-    save_video_with_metadata,
     save_veo_video_with_metadata,
+    save_video_with_metadata,
+    validate_resolution,
 )
-from .utils.image_utils import load_image_by_name, get_images_dir
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +72,7 @@ class GenerateVideo(BaseTool):
 
     Videos are saved to: mnt/{product_name}/generated_videos/
     """
+
     product_name: str = Field(
         ...,
         description="Name of the product this video is for (e.g., 'Acme_Widget_Pro', 'Green_Tea_Extract'). Used to organize files into product-specific folders.",
@@ -107,7 +111,7 @@ class GenerateVideo(BaseTool):
             "Seedance 1.5 Pro: any integer 4–12."
         ),
     )
-    first_frame_ref: Optional[str] = Field(
+    first_frame_ref: str | None = Field(
         default=None,
         description=(
             "Optional first frame reference image for image-to-video. Can be: "
@@ -115,7 +119,7 @@ class GenerateVideo(BaseTool):
             "2) Full local path, or 3) HTTPS URL."
         ),
     )
-    asset_image_ref: Optional[str] = Field(
+    asset_image_ref: str | None = Field(
         default=None,
         description=(
             "Optional asset reference image for Veo (subject/asset guidance). Can be: "
@@ -123,8 +127,8 @@ class GenerateVideo(BaseTool):
             "2) Full local path, or 3) HTTPS URL."
         ),
     )
-    size: Literal['720x1280', '1280x720', '1024x1792', '1792x1024'] = Field(
-        default='1280x720',
+    size: Literal["720x1280", "1280x720", "1024x1792", "1792x1024"] = Field(
+        default="1280x720",
         description="Optional resolution in WIDTHxHEIGHT format (e.g. 1280x720). For Sora: exact resolution. For Veo: reference image will be cropped/resized to match this aspect ratio to prevent stretching.",
     )
 
@@ -132,26 +136,28 @@ class GenerateVideo(BaseTool):
     @classmethod
     def _prompt_not_blank(cls, value: str) -> str:
         if re.match(r"^\[.*\]", value) or re.match(r"^\[.*?\]\s+.+", value):
-            raise ValueError("PROMPT CANNNOT CONTAIN VARIABLES!!! YOU HAVE TO REWRITE THE WHOLE PROMPT FROM SCRATCH!!! THIS TOOL IS STATELESS. STOP BEING LAZY AND REWRITE THE WHOLE PROMPT FOR USER'S FEEDBACK.")
+            raise ValueError(
+                "PROMPT CANNNOT CONTAIN VARIABLES!!! YOU HAVE TO REWRITE THE WHOLE PROMPT FROM SCRATCH!!! THIS TOOL IS STATELESS. STOP BEING LAZY AND REWRITE THE WHOLE PROMPT FOR USER'S FEEDBACK."
+            )
         return ensure_not_blank(value, "prompt")
 
     @field_validator("first_frame_ref")
     @classmethod
-    def _reference_not_blank(cls, value: Optional[str]) -> Optional[str]:
+    def _reference_not_blank(cls, value: str | None) -> str | None:
         if value is not None:
             ensure_not_blank(value, "first_frame_ref")
         return value
 
     @field_validator("asset_image_ref")
     @classmethod
-    def _asset_reference_not_blank(cls, value: Optional[str]) -> Optional[str]:
+    def _asset_reference_not_blank(cls, value: str | None) -> str | None:
         if value is not None:
             ensure_not_blank(value, "asset_image_ref")
         return value
 
     @field_validator("size")
     @classmethod
-    def _size_format(cls, value: Optional[str]) -> Optional[str]:
+    def _size_format(cls, value: str | None) -> str | None:
         return validate_resolution(value)
 
     @model_validator(mode="after")
@@ -163,7 +169,9 @@ class GenerateVideo(BaseTool):
         if is_sora_model(self.model) and self.asset_image_ref is not None:
             raise ValueError("Sora does not support asset_image_ref. Use first_frame_ref instead.")
         if is_seedance_model(self.model) and self.asset_image_ref is not None:
-            raise ValueError("Seedance does not support asset_image_ref. Use first_frame_ref instead.")
+            raise ValueError(
+                "Seedance does not support asset_image_ref. Use first_frame_ref instead."
+            )
         return self
 
     async def run(self) -> list:
@@ -194,12 +202,12 @@ class GenerateVideo(BaseTool):
                 )
             )
         reference_file = None
-        
+
         try:
             reference_file = resolve_input_reference(
                 self.first_frame_ref,
                 target_size=self.size if self.first_frame_ref else None,
-                product_name=self.product_name
+                product_name=self.product_name,
             )
 
             request_payload = {
@@ -213,13 +221,12 @@ class GenerateVideo(BaseTool):
                 request_payload["input_reference"] = reference_file
 
             logger.info(f"Submitting video generation request to Sora ({model})...")
-            
+
             # Run blocking operation in thread pool to avoid blocking event loop
             loop = asyncio.get_event_loop()
             try:
                 video = await loop.run_in_executor(
-                    None,
-                    lambda: client.videos.create(**request_payload)
+                    None, lambda: client.videos.create(**request_payload)
                 )
             except Exception as exc:
                 if _is_transient_network_error(exc):
@@ -230,7 +237,11 @@ class GenerateVideo(BaseTool):
                 raise
 
             started_at = asyncio.get_running_loop().time()
-            while getattr(video, "status", None) not in {"completed", "failed", "cancelled"}:
+            while getattr(video, "status", None) not in {
+                "completed",
+                "failed",
+                "cancelled",
+            }:
                 logger.info("Waiting for Sora video generation to complete...")
                 elapsed = asyncio.get_running_loop().time() - started_at
                 if elapsed > VIDEO_GENERATION_TIMEOUT_SECONDS:
@@ -240,14 +251,16 @@ class GenerateVideo(BaseTool):
                     )
                 await asyncio.sleep(10)
                 try:
+                    video_id = video.id
                     video = await loop.run_in_executor(
-                        None,
-                        lambda: client.videos.retrieve(video.id)
+                        None, lambda vid=video_id: client.videos.retrieve(vid)
                     )
                 except Exception as exc:
                     if not _is_transient_network_error(exc):
                         raise
-                    logger.warning(f"Transient Sora polling error: {exc}. Retrying same video id...")
+                    logger.warning(
+                        f"Transient Sora polling error: {exc}. Retrying same video id..."
+                    )
 
             logger.info(f"Video generation status: {video.status}")
             if video.status != "completed":
@@ -268,22 +281,24 @@ class GenerateVideo(BaseTool):
         """Generate video using Google's Veo API with optional references."""
 
         client = get_gemini_client()
-        
+
         try:
             config_kwargs = {"duration_seconds": self.seconds}
             first_frame_image = None
-            
+
             # Add aspect_ratio and resolution only when NOT using reference images
             # (these parameters cause "not supported" errors when used with reference images)
             if self.size and not self.first_frame_ref and not self.asset_image_ref:
-                width, height = map(int, self.size.split('x'))
+                width, height = map(int, self.size.split("x"))
                 config_kwargs["aspect_ratio"] = "9:16" if width < height else "16:9"
-            
+
             if self.asset_image_ref:
                 parsed = urlparse(self.asset_image_ref)
-                
+
                 if parsed.scheme in ("http", "https"):
-                    raise ValueError("Veo does not support URL reference images. Please use local images.")
+                    raise ValueError(
+                        "Veo does not support URL reference images. Please use local images."
+                    )
                 else:
                     path = Path(self.asset_image_ref).expanduser().resolve()
                     if path.exists():
@@ -291,22 +306,26 @@ class GenerateVideo(BaseTool):
                     else:
                         images_dir = get_images_dir(self.product_name)
                         pil_image, image_path, load_error = load_image_by_name(
-                            self.asset_image_ref, images_dir, [".png", ".jpg", ".jpeg", ".webp"]
+                            self.asset_image_ref,
+                            images_dir,
+                            [".png", ".jpg", ".jpeg", ".webp"],
                         )
                         if load_error:
-                            raise FileNotFoundError(f"Reference image '{self.asset_image_ref}' not found in {images_dir}")
-                
+                            raise FileNotFoundError(
+                                f"Reference image '{self.asset_image_ref}' not found in {images_dir}"
+                            )
+
                 logger.info(f"Loading asset reference image for Veo: {image_path}")
-                
+
                 with PILImage.open(image_path) as img:
-                    if img.mode != 'RGB':
-                        img = img.convert('RGB')
+                    if img.mode != "RGB":
+                        img = img.convert("RGB")
 
                     if self.size:
-                        target_width, target_height = map(int, self.size.split('x'))
+                        target_width, target_height = map(int, self.size.split("x"))
                         target_ratio = target_width / target_height
                         img_ratio = img.width / img.height
-                        
+
                         # Crop to match aspect ratio (center crop)
                         if img_ratio > target_ratio:
                             # Image is wider, crop width
@@ -318,11 +337,11 @@ class GenerateVideo(BaseTool):
                             new_height = int(img.width / target_ratio)
                             top = (img.height - new_height) // 2
                             img = img.crop((0, top, img.width, top + new_height))
-                        
+
                         img = img.resize((target_width, target_height), PILImage.Resampling.LANCZOS)
 
                     buffer = BytesIO()
-                    img.save(buffer, format='PNG')
+                    img.save(buffer, format="PNG")
                     image_bytes = buffer.getvalue()
                     mime_type = "image/png"
 
@@ -350,27 +369,31 @@ class GenerateVideo(BaseTool):
                     guessed = mimetypes.guess_type(reference_file.name)[0]
                     if guessed:
                         mime_type = guessed
-                
+
                 first_frame_image = Image(
                     image_bytes=first_frame_bytes,
                     mime_type=mime_type,
                 )
-                
+
                 if hasattr(reference_file, "close"):
                     try:
                         reference_file.close()
                     except Exception:
                         pass
-            
+
             config = GenerateVideosConfig(**config_kwargs)
-            
+
             if self.size and self.first_frame_ref:
-                logger.info(f"Submitting video generation request to Veo ({model}) - first frame resized to {self.size} (aspect ratio inferred from image)...")
+                logger.info(
+                    f"Submitting video generation request to Veo ({model}) - first frame resized to {self.size} (aspect ratio inferred from image)..."
+                )
             elif self.size:
-                logger.info(f"Submitting video generation request to Veo ({model}) - size: {self.size}...")
+                logger.info(
+                    f"Submitting video generation request to Veo ({model}) - size: {self.size}..."
+                )
             else:
                 logger.info(f"Submitting video generation request to Veo ({model})...")
-            
+
             # run_in_executor keeps the event loop free while Veo polls
             loop = asyncio.get_event_loop()
             generate_kwargs = {
@@ -378,7 +401,7 @@ class GenerateVideo(BaseTool):
                 "prompt": self.prompt,
                 "config": config,
             }
-            
+
             # Add image parameter if first_frame_ref is provided (simple image-to-video)
             if first_frame_image:
                 generate_kwargs["image"] = first_frame_image
@@ -386,8 +409,7 @@ class GenerateVideo(BaseTool):
             started_at = asyncio.get_running_loop().time()
             try:
                 operation = await loop.run_in_executor(
-                    None,
-                    lambda: client.models.generate_videos(**generate_kwargs)
+                    None, lambda: client.models.generate_videos(**generate_kwargs)
                 )
             except Exception as exc:
                 if _is_transient_network_error(exc):
@@ -396,7 +418,7 @@ class GenerateVideo(BaseTool):
                         "Please retry this GenerateVideo call."
                     ) from exc
                 raise
-            
+
             # Poll the operation status until the video is ready
             while not operation.done:
                 logger.info("Waiting for Veo video generation to complete...")
@@ -407,22 +429,24 @@ class GenerateVideo(BaseTool):
                     )
                 await asyncio.sleep(10)
                 try:
+                    op = operation
                     operation = await loop.run_in_executor(
-                        None,
-                        lambda: client.operations.get(operation)
+                        None, lambda o=op: client.operations.get(o)
                     )
                 except Exception as exc:
                     if not _is_transient_network_error(exc):
                         raise
-                    logger.warning(f"Transient Veo polling error: {exc}. Retrying same operation...")
-            
+                    logger.warning(
+                        f"Transient Veo polling error: {exc}. Retrying same operation..."
+                    )
+
             logger.info("Video generation complete!")
-            
+
             # Download the generated video — retry on transient network errors
             generated_video = operation.response.generated_videos[0]
-            MAX_DOWNLOAD_RETRIES = 3
+            max_download_retries = 3
             last_exc: Exception | None = None
-            for attempt in range(MAX_DOWNLOAD_RETRIES):
+            for attempt in range(max_download_retries):
                 try:
                     output = await loop.run_in_executor(
                         None,
@@ -434,10 +458,10 @@ class GenerateVideo(BaseTool):
                     break
                 except Exception as exc:
                     last_exc = exc
-                    if attempt < MAX_DOWNLOAD_RETRIES - 1 and _is_transient_network_error(exc):
+                    if attempt < max_download_retries - 1 and _is_transient_network_error(exc):
                         wait = 5 * (attempt + 1)
                         logger.warning(
-                            f"Transient Veo download error (attempt {attempt + 1}/{MAX_DOWNLOAD_RETRIES}): "
+                            f"Transient Veo download error (attempt {attempt + 1}/{max_download_retries}): "
                             f"{exc}. Retrying in {wait}s..."
                         )
                         await asyncio.sleep(wait)
@@ -447,11 +471,11 @@ class GenerateVideo(BaseTool):
                 raise last_exc
 
             return output
-            
+
         except RuntimeError:
             raise
         except Exception as e:
-            raise RuntimeError(f"Veo video generation failed: {str(e)}")
+            raise RuntimeError(f"Veo video generation failed: {str(e)}") from e
 
     async def _generate_with_seedance(self, model: str) -> list:
         """Generate video using ByteDance Seedance 1.5 Pro via fal.ai."""
@@ -502,7 +526,9 @@ class GenerateVideo(BaseTool):
                 "aspect_ratio": aspect_ratio,
             }
 
-        logger.info(f"Submitting video generation request to Seedance 1.5 Pro (fal.ai, {endpoint})...")
+        logger.info(
+            f"Submitting video generation request to Seedance 1.5 Pro (fal.ai, {endpoint})..."
+        )
         result = await asyncio.to_thread(
             fal.subscribe, endpoint, arguments=arguments, with_logs=True
         )
@@ -527,7 +553,12 @@ class GenerateVideo(BaseTool):
         last_frame_path = os.path.join(videos_dir, f"{self.name}_last_frame.jpg")
         await asyncio.to_thread(extract_last_frame, output_path, last_frame_path)
 
-        return [ToolOutputText(type="text", text=f"Video saved to `{self.name}.mp4`\nPath: {output_path}")]
+        return [
+            ToolOutputText(
+                type="text",
+                text=f"Video saved to `{self.name}.mp4`\nPath: {output_path}",
+            )
+        ]
 
     async def _resolve_image_for_fal(self, image_ref: str, fal: fal_client.SyncClient) -> str:
         """Resolve a local path or image name to a fal.ai-accessible URL."""
@@ -542,23 +573,21 @@ class GenerateVideo(BaseTool):
                 image_ref, images_dir, [".png", ".jpg", ".jpeg", ".webp"]
             )
             if err:
-                raise FileNotFoundError(
-                    f"Reference image '{image_ref}' not found in {images_dir}"
-                )
+                raise FileNotFoundError(f"Reference image '{image_ref}' not found in {images_dir}")
             path = Path(image_path)
 
         return await asyncio.to_thread(fal.upload_file, str(path))
 
+
 if __name__ == "__main__":
     # Basic test invocation (Sora)
     tool = GenerateVideo(
-        product_name = "bird_forest_veo",
-        prompt = "Cinematic nature footage: a small colorful songbird (robin-like) flies swiftly through a dense evergreen forest corridor, weaving between mossy trunks and sunlit branches. The camera follows in a smooth tracking shot at bird height, slightly behind and to the side, maintaining the bird in sharp focus while the background streaks with gentle motion blur. Early morning golden light filters through the canopy, creating volumetric rays and floating dust motes; rich greens and warm highlights, high dynamic range, natural filmic contrast. The bird beats its wings rhythmically, occasionally gliding past ferns and hanging vines; leaves flutter from the air wake. Lens: 35mm, shallow depth of field, stabilized gimbal-like motion, realistic textures and feathers. Audio: clear forest ambience with soft wind through needles, subtle wing flaps, distant birdsong.",
-        name = "bird_flying_forest_4s_16x9_fast_v2",
-        model = "veo-3.1-fast-generate-preview",
-        seconds = 4,
-        size = "1280x720"
-
+        product_name="bird_forest_veo",
+        prompt="Cinematic nature footage: a small colorful songbird (robin-like) flies swiftly through a dense evergreen forest corridor, weaving between mossy trunks and sunlit branches. The camera follows in a smooth tracking shot at bird height, slightly behind and to the side, maintaining the bird in sharp focus while the background streaks with gentle motion blur. Early morning golden light filters through the canopy, creating volumetric rays and floating dust motes; rich greens and warm highlights, high dynamic range, natural filmic contrast. The bird beats its wings rhythmically, occasionally gliding past ferns and hanging vines; leaves flutter from the air wake. Lens: 35mm, shallow depth of field, stabilized gimbal-like motion, realistic textures and feathers. Audio: clear forest ambience with soft wind through needles, subtle wing flaps, distant birdsong.",
+        name="bird_flying_forest_4s_16x9_fast_v2",
+        model="veo-3.1-fast-generate-preview",
+        seconds=4,
+        size="1280x720",
     )
     try:
         logging.basicConfig(level=logging.INFO)

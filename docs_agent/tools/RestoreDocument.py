@@ -51,9 +51,7 @@ class RestoreDocument(BaseTool):
         snapshot_path = project_dir / f"{docx_name}.snapshot.html"
 
         if not snapshot_path.exists():
-            available = sorted(
-                p.name for p in project_dir.glob("*.docx.snapshot.html")
-            )
+            available = sorted(p.name for p in project_dir.glob("*.docx.snapshot.html"))
             hint = (
                 "\nAvailable snapshots:\n" + "\n".join(f"  {s}" for s in available)
                 if available
@@ -76,4 +74,5 @@ class RestoreDocument(BaseTool):
 def _strip_version(stem: str) -> str:
     """Remove trailing _vN suffix so report_v2 → report."""
     import re
+
     return re.sub(r"_v\d+$", "", stem)

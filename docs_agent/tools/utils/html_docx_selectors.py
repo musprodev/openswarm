@@ -1,11 +1,9 @@
-from typing import Dict, List, Optional, Tuple
-
+import tinycss2
 from bs4 import BeautifulSoup
 from bs4.element import Tag
-import tinycss2
 
 
-def _parse_style(style: str) -> Dict[str, str]:
+def _parse_style(style: str) -> dict[str, str]:
     items = {}
     for rule in style.split(";"):
         if ":" not in rule:
@@ -20,8 +18,8 @@ def _parse_style(style: str) -> Dict[str, str]:
 
 def _extract_css_rules(
     soup: BeautifulSoup,
-) -> List[Tuple[str, Dict[str, str], Tuple[int, int, int], int]]:
-    rules: List[Tuple[str, Dict[str, str], Tuple[int, int, int], int]] = []
+) -> list[tuple[str, dict[str, str], tuple[int, int, int], int]]:
+    rules: list[tuple[str, dict[str, str], tuple[int, int, int], int]] = []
     order = 0
 
     for style_tag in soup.find_all("style"):
@@ -29,9 +27,7 @@ def _extract_css_rules(
         if not css_text:
             continue
 
-        stylesheet = tinycss2.parse_stylesheet(
-            css_text, skip_comments=True, skip_whitespace=True
-        )
+        stylesheet = tinycss2.parse_stylesheet(css_text, skip_comments=True, skip_whitespace=True)
         for rule in stylesheet:
             if rule.type != "qualified-rule":
                 continue
@@ -43,7 +39,7 @@ def _extract_css_rules(
             declarations = tinycss2.parse_declaration_list(
                 rule.content, skip_comments=True, skip_whitespace=True
             )
-            style_map: Dict[str, str] = {}
+            style_map: dict[str, str] = {}
             for declaration in declarations:
                 if declaration.type != "declaration":
                     continue
@@ -78,10 +74,10 @@ def _extract_css_rules(
 
 
 def _compute_style_map(
-    element, css_rules: List[Tuple[str, Dict[str, str], Tuple[int, int, int], int]]
-) -> Dict[str, str]:
-    resolved: Dict[str, str] = {}
-    matches: List[Tuple[Tuple[int, int, int], int, Dict[str, str]]] = []
+    element, css_rules: list[tuple[str, dict[str, str], tuple[int, int, int], int]]
+) -> dict[str, str]:
+    resolved: dict[str, str] = {}
+    matches: list[tuple[tuple[int, int, int], int, dict[str, str]]] = []
 
     for selector, styles, specificity, order in css_rules:
         if _matches_selector(element, selector):
@@ -106,14 +102,14 @@ def _is_supported_selector(selector: str) -> bool:
     return True
 
 
-def _selector_specificity(selector: str) -> Tuple[int, int, int]:
+def _selector_specificity(selector: str) -> tuple[int, int, int]:
     selectors = _parse_selector_chain(selector)
     class_count = sum(len(classes) for _, classes in selectors)
     tag_count = sum(1 for tag, _ in selectors if tag)
     return (0, class_count, tag_count)
 
 
-def _parse_selector(selector: str) -> Tuple[Optional[str], List[str]]:
+def _parse_selector(selector: str) -> tuple[str | None, list[str]]:
     selector = selector.strip()
     if selector.startswith("."):
         tag = None
@@ -132,11 +128,11 @@ def _matches_selector(element, selector: str) -> bool:
     return _matches_selector_chain(element, chain)
 
 
-def _parse_selector_chain(selector: str) -> List[Tuple[Optional[str], List[str]]]:
+def _parse_selector_chain(selector: str) -> list[tuple[str | None, list[str]]]:
     tokens = selector.replace(">", " > ").split()
     if not tokens:
         return []
-    selectors: List[Tuple[Optional[str], List[str]]] = []
+    selectors: list[tuple[str | None, list[str]]] = []
     for token in tokens:
         if token == ">":
             selectors.append((">", []))
@@ -145,7 +141,7 @@ def _parse_selector_chain(selector: str) -> List[Tuple[Optional[str], List[str]]
     return selectors
 
 
-def _matches_selector_chain(element: Tag, chain: List[Tuple[Optional[str], List[str]]]) -> bool:
+def _matches_selector_chain(element: Tag, chain: list[tuple[str | None, list[str]]]) -> bool:
     idx = len(chain) - 1
     current = element
 
@@ -183,9 +179,7 @@ def _matches_selector_chain(element: Tag, chain: List[Tuple[Optional[str], List[
     return True
 
 
-def _matches_simple_selector(
-    element: Tag, selector: Tuple[Optional[str], List[str]]
-) -> bool:
+def _matches_simple_selector(element: Tag, selector: tuple[str | None, list[str]]) -> bool:
     tag, classes = selector
     if tag and element.name != tag:
         return False

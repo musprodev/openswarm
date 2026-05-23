@@ -1,4 +1,5 @@
 """Restore HTML slides from a PPTX export snapshot."""
+
 from agency_swarm.tools import BaseTool
 from pydantic import Field
 
@@ -44,14 +45,19 @@ class RestoreSnapshot(BaseTool):
 
     def run(self) -> str:
         project_dir = get_project_dir(self.project_name)
-        pptx_name = self.pptx_filename if self.pptx_filename.endswith(".pptx") else f"{self.pptx_filename}.pptx"
+        pptx_name = (
+            self.pptx_filename
+            if self.pptx_filename.endswith(".pptx")
+            else f"{self.pptx_filename}.pptx"
+        )
         slides_dir = project_dir / f"{pptx_name}.slides"
 
         if not slides_dir.exists():
             available = sorted(p.name for p in project_dir.glob("*.pptx.slides") if p.is_dir())
             hint = (
                 "\nAvailable snapshots:\n" + "\n".join(f"  {d}" for d in available)
-                if available else "\nNo snapshots found in this project."
+                if available
+                else "\nNo snapshots found in this project."
             )
             return f"Error: No snapshot found for '{pptx_name}'.{hint}"
 
@@ -80,10 +86,12 @@ class RestoreSnapshot(BaseTool):
             restored_slides.append(slide_name)
 
         summary = "\n".join(f"  {s}" for s in restored_slides)
-        return (
-            f"Restored {len(restored_slides)} slide(s) to {project_dir}:\n{summary}"
-        )
+        return f"Restored {len(restored_slides)} slide(s) to {project_dir}:\n{summary}"
+
 
 if __name__ == "__main__":
-    tool = RestoreSnapshot(project_name="dinosaur_presentation_v2", pptx_filename="dinosaur_presentation_v2.pptx")
+    tool = RestoreSnapshot(
+        project_name="dinosaur_presentation_v2",
+        pptx_filename="dinosaur_presentation_v2.pptx",
+    )
     print(tool.run())

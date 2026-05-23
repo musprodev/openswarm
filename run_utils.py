@@ -1,13 +1,15 @@
 import os
-import sys
-import subprocess
 import shutil
+import subprocess
+import sys
 import tempfile
 from pathlib import Path
+
 
 def _resolve_bin_name() -> str:
     """Return the platform+arch-specific TUI binary filename."""
     import platform
+
     machine = platform.machine().lower()
     arch = "arm64" if machine in ("arm64", "aarch64") else "x64"
     if sys.platform == "win32":
@@ -51,15 +53,23 @@ def _bootstrap() -> None:
     _repo = Path(__file__).resolve().parent
     # Ensure deps are present.
     try:
-        import dotenv        # noqa: F401
-        import rich          # noqa: F401
-        import questionary   # noqa: F401
         import agency_swarm  # noqa: F401
+        import dotenv  # noqa: F401
+        import questionary  # noqa: F401
+        import rich  # noqa: F401
     except ImportError:
         print("Installing dependencies, please wait…\n")
         if not shutil.which("uv"):
             subprocess.check_call([sys.executable, "-m", "pip", "install", "uv"])
-        uv_cmd = ["uv", "pip", "install", "--system", "--python", sys.executable, str(_repo)]
+        uv_cmd = [
+            "uv",
+            "pip",
+            "install",
+            "--system",
+            "--python",
+            sys.executable,
+            str(_repo),
+        ]
         if sys.platform != "win32":
             uv_cmd.append("--break-system-packages")
         subprocess.check_call(uv_cmd, env=_uv_env())
@@ -91,7 +101,16 @@ def _bootstrap() -> None:
             print("\nDone.\n")
         elif sys.platform == "win32" and shutil.which("winget"):
             print("Installing LibreOffice (required for Slides Agent), please wait…\n")
-            subprocess.check_call(["winget", "install", "--id", "TheDocumentFoundation.LibreOffice", "-e", "--silent"])
+            subprocess.check_call(
+                [
+                    "winget",
+                    "install",
+                    "--id",
+                    "TheDocumentFoundation.LibreOffice",
+                    "-e",
+                    "--silent",
+                ]
+            )
             print("\nDone.\n")
         else:
             print(
@@ -111,7 +130,16 @@ def _bootstrap() -> None:
             print("\nDone.\n")
         elif sys.platform == "win32" and shutil.which("winget"):
             print("Installing Poppler (required for Slides Agent), please wait…\n")
-            subprocess.check_call(["winget", "install", "--id", "oschwartz10612.Poppler", "-e", "--silent"])
+            subprocess.check_call(
+                [
+                    "winget",
+                    "install",
+                    "--id",
+                    "oschwartz10612.Poppler",
+                    "-e",
+                    "--silent",
+                ]
+            )
             print("\nDone.\n")
         else:
             print(
@@ -145,6 +173,7 @@ def _bootstrap() -> None:
     _bin_path = _repo / _bin_name
     if not _bin_path.exists():
         import urllib.request
+
         _bin_url = f"https://github.com/VRSEN/OpenSwarm/releases/latest/download/{_bin_name}"
         print("Downloading OpenSwarm TUI, please wait…\n")
         try:
@@ -153,12 +182,19 @@ def _bootstrap() -> None:
                 _bin_path.chmod(0o755)
             print("\nDone.\n")
         except Exception:
-            print("Warning: Could not download OpenSwarm TUI. The terminal UI will use the default.\n")
+            print(
+                "Warning: Could not download OpenSwarm TUI. The terminal UI will use the default.\n"
+            )
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 
 
 _OPTIONAL_INTEGRATIONS = [
-    ("Composio (10,000+ external integrations)", ["COMPOSIO_API_KEY", "COMPOSIO_USER_ID"]),
+    (
+        "Composio (10,000+ external integrations)",
+        ["COMPOSIO_API_KEY", "COMPOSIO_USER_ID"],
+    ),
     ("Anthropic / Claude models", ["ANTHROPIC_API_KEY"]),
     ("Search", ["SEARCH_API_KEY"]),
     ("Fal.ai (video & audio generation)", ["FAL_KEY"]),
@@ -196,6 +232,7 @@ def _configure_demo_console() -> None:
     if silence_console:
         try:
             import logging
+
             devnull = open(os.devnull, "w", encoding="utf-8")  # noqa: SIM115
             sys.stdout = devnull  # type: ignore[assignment]
             sys.stderr = devnull  # type: ignore[assignment]
@@ -205,7 +242,12 @@ def _configure_demo_console() -> None:
         return
 
     # Keep this opt-in so developers can still see warnings when needed.
-    if os.getenv("OPENSWARM_DEMO_SHOW_WARNINGS", "").strip().lower() in {"1", "true", "yes", "on"}:
+    if os.getenv("OPENSWARM_DEMO_SHOW_WARNINGS", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }:
         return
 
     # pyzmq RuntimeWarning on Windows ProactorEventLoop (common with Python 3.8+ / 3.12)
@@ -226,6 +268,7 @@ def _configure_demo_console() -> None:
     if os.name == "nt":
         try:
             import asyncio
+
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         except Exception:
             pass
@@ -233,6 +276,7 @@ def _configure_demo_console() -> None:
 
 def main() -> None:
     from dotenv import load_dotenv
+
     load_dotenv()
 
     os.environ.setdefault("PYTHONUTF8", "1")
@@ -247,6 +291,7 @@ def main() -> None:
     # Disable OpenAI Agents SDK tracing for terminal demo runs.
     try:
         from agents import set_tracing_disabled
+
         set_tracing_disabled(True)
     except Exception:
         pass
@@ -259,6 +304,7 @@ def main() -> None:
 
     while True:
         import logging
+
         sys.stdout = sys.__stdout__
         sys.stderr = sys.__stderr__
         logging.disable(logging.NOTSET)
@@ -296,6 +342,7 @@ def main() -> None:
             logging.disable(logging.NOTSET)
             print("\nLaunching setup wizard…")
             from onboard import run_onboarding
+
             run_onboarding()
             load_dotenv(override=True)
         else:

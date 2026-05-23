@@ -1,5 +1,3 @@
-from typing import Dict
-
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -26,7 +24,7 @@ from .html_docx_css import (
 )
 
 
-def _apply_paragraph_style(paragraph, style_map: Dict[str, str]) -> None:
+def _apply_paragraph_style(paragraph, style_map: dict[str, str]) -> None:
     alignment = style_map.get("text-align", "").lower()
     if alignment == "left":
         paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
@@ -43,7 +41,7 @@ def _apply_paragraph_style(paragraph, style_map: Dict[str, str]) -> None:
     _apply_paragraph_line_height(paragraph, style_map)
 
 
-def _apply_run_style(run, style_map: Dict[str, str]) -> None:
+def _apply_run_style(run, style_map: dict[str, str]) -> None:
     font_family = style_map.get("font-family")
     if font_family:
         _set_run_font(run, _normalize_font_family(font_family))
@@ -101,7 +99,7 @@ def _set_run_font(run, font_name: str) -> None:
     r_fonts.set(qn("w:eastAsia"), font_name)
 
 
-def _apply_paragraph_container_styles(paragraph, style_map: Dict[str, str]) -> None:
+def _apply_paragraph_container_styles(paragraph, style_map: dict[str, str]) -> None:
     bg_color = _parse_background_color(style_map)
     if bg_color:
         p_pr = paragraph._p.get_or_add_pPr()
@@ -136,7 +134,7 @@ def _apply_paragraph_container_styles(paragraph, style_map: Dict[str, str]) -> N
             paragraph.paragraph_format.right_indent = Pt(right * _PADDING_SCALE)
 
 
-def _apply_paragraph_line_height(paragraph, style_map: Dict[str, str]) -> None:
+def _apply_paragraph_line_height(paragraph, style_map: dict[str, str]) -> None:
     line_height = style_map.get("line-height", "").strip().lower()
     if not line_height:
         # Spacer-div pattern: <div style="height: Xpt"> with no other content.
@@ -166,7 +164,7 @@ def _apply_paragraph_line_height(paragraph, style_map: Dict[str, str]) -> None:
         paragraph.paragraph_format.line_spacing = value
 
 
-def _apply_paragraph_spacing(paragraph, style_map: Dict[str, str]) -> None:
+def _apply_paragraph_spacing(paragraph, style_map: dict[str, str]) -> None:
     paragraph.paragraph_format.space_before = Pt(0)
     paragraph.paragraph_format.space_after = Pt(0)
 
@@ -187,7 +185,7 @@ def _apply_paragraph_spacing(paragraph, style_map: Dict[str, str]) -> None:
         paragraph.paragraph_format.space_after = Pt(margin_bottom)
 
 
-def _apply_paragraph_borders(paragraph, style_map: Dict[str, str]) -> None:
+def _apply_paragraph_borders(paragraph, style_map: dict[str, str]) -> None:
     top = _parse_paragraph_border(style_map.get("border-top", ""))
     bottom = _parse_paragraph_border(style_map.get("border-bottom", ""))
     if not top and not bottom:
@@ -291,9 +289,15 @@ def _apply_ul_margin_indent(paragraph, additional_left_pt: float) -> None:
         ind = OxmlElement("w:ind")
         p_pr.append(ind)
     current_left = ind.get(qn("w:left"))
-    base_left = int(current_left) if current_left and current_left.isdigit() else _LIST_BASE_LEFT_TWIPS
+    base_left = (
+        int(current_left) if current_left and current_left.isdigit() else _LIST_BASE_LEFT_TWIPS
+    )
     current_hanging = ind.get(qn("w:hanging"))
-    base_hanging = int(current_hanging) if current_hanging and current_hanging.isdigit() else _LIST_BASE_HANGING_TWIPS
+    base_hanging = (
+        int(current_hanging)
+        if current_hanging and current_hanging.isdigit()
+        else _LIST_BASE_HANGING_TWIPS
+    )
     ind.set(qn("w:left"), str(base_left + int(additional_left_pt * 20)))
     ind.set(qn("w:hanging"), str(base_hanging))
 
@@ -318,7 +322,7 @@ def _set_list_indent_xml(paragraph, indent_pt: float) -> None:
         ind.set(qn("w:hanging"), str(_LIST_BASE_HANGING_TWIPS))
 
 
-def _resolve_list_indent_pt(parent_style: Dict[str, str]) -> float:
+def _resolve_list_indent_pt(parent_style: dict[str, str]) -> float:
     margin_left = parent_style.get("margin-left", "")
     if margin_left:
         value = _parse_length_to_pt(margin_left)

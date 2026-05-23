@@ -9,26 +9,20 @@ from .slide_file_utils import get_project_dir
 class ManageTheme(BaseTool):
     """
     Create or edit the theme CSS file for a presentation project.
-    
+
     The theme file is saved as `_theme.css` in the project folder and defines:
     - Color palette (CSS variables)
     - Typography (fonts, sizes, line heights)
     - Base styles for common elements
     - Reusable classes (cards, labels, etc.)
-    
+
     Usage:
     - First time: Creates new theme file
     - Subsequent calls: Overwrites existing theme
     """
 
-    project_name: str = Field(
-        ...,
-        description="Name of the presentation project"
-    )
-    css_content: str = Field(
-        ...,
-        description="Complete CSS content for the theme file"
-    )
+    project_name: str = Field(..., description="Name of the presentation project")
+    css_content: str = Field(..., description="Complete CSS content for the theme file")
     overwrite: bool = Field(
         default=False,
         description=(
@@ -41,7 +35,7 @@ class ManageTheme(BaseTool):
         """Create or update theme file."""
         project_dir = get_project_dir(self.project_name)
         project_dir.mkdir(parents=True, exist_ok=True)
-        
+
         theme_path = project_dir / "_theme.css"
         if theme_path.exists() and not self.overwrite:
             return (
@@ -49,16 +43,16 @@ class ManageTheme(BaseTool):
                 "Set overwrite=True to replace it or add a postfix to the filename."
             )
         operation = "updated" if theme_path.exists() else "created"
-        
+
         css_content, injected = self._ensure_canvas_rules(self.css_content)
 
         try:
-            theme_path.write_text(css_content, encoding='utf-8')
+            theme_path.write_text(css_content, encoding="utf-8")
             file_size = theme_path.stat().st_size
 
             note = " (added base canvas rules)" if injected else ""
             return f"✅ Successfully {operation} theme: {theme_path}{note}\nSize: {file_size} bytes"
-        
+
         except Exception as e:
             return f"Error writing theme: {e}"
 
@@ -96,8 +90,8 @@ class ManageTheme(BaseTool):
 
 
 if __name__ == "__main__":
-    from pathlib import Path
     import sys
+    from pathlib import Path
 
     tools_root = Path(__file__).resolve().parents[1]
     if str(tools_root) not in sys.path:

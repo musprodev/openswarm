@@ -40,7 +40,7 @@ class ListSkills(BaseTool):
                     continue
 
                 try:
-                    with open(skill_file, "r", encoding="utf-8") as f:
+                    with open(skill_file, encoding="utf-8") as f:
                         lines = f.readlines()
 
                     name = None
@@ -57,18 +57,22 @@ class ListSkills(BaseTool):
                         if line3.startswith("description:"):
                             description = line3.split("description:", 1)[1].strip()
 
-                    skills.append({
-                        "name": name or entry,
-                        "description": description or "No description available",
-                        "relative_path": os.path.relpath(skill_file, os.getcwd()),
-                    })
+                    skills.append(
+                        {
+                            "name": name or entry,
+                            "description": description or "No description available",
+                            "relative_path": os.path.relpath(skill_file, os.getcwd()),
+                        }
+                    )
 
                 except Exception as e:
-                    skills.append({
-                        "name": entry,
-                        "description": f"Error reading skill file: {str(e)}",
-                        "relative_path": os.path.relpath(skill_file, os.getcwd()),
-                    })
+                    skills.append(
+                        {
+                            "name": entry,
+                            "description": f"Error reading skill file: {str(e)}",
+                            "relative_path": os.path.relpath(skill_file, os.getcwd()),
+                        }
+                    )
 
             if not skills:
                 return f"No skills found in {skills_path}"
@@ -91,4 +95,3 @@ if __name__ == "__main__":
     tool = ListSkills()
     result = tool.run()
     print(result)
-

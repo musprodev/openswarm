@@ -7,10 +7,8 @@ from typing import Any
 from urllib.parse import urlparse
 
 import requests
-from PIL import Image
-
 from agency_swarm import ToolOutputImage, ToolOutputText
-
+from PIL import Image
 
 DEFAULT_EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp")
 ALL_ASPECT_RATIOS = (
@@ -270,10 +268,7 @@ def extract_openai_images_and_usage(response: Any) -> tuple[list[Image.Image], d
 def run_parallel_variants_sync(task_fn, num_variants: int) -> list:
     results_by_index: dict[int, Any] = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=num_variants) as executor:
-        future_to_index = {
-            executor.submit(task_fn, idx): idx
-            for idx in range(1, num_variants + 1)
-        }
+        future_to_index = {executor.submit(task_fn, idx): idx for idx in range(1, num_variants + 1)}
         for future in concurrent.futures.as_completed(future_to_index):
             idx = future_to_index[future]
             try:
@@ -305,4 +300,3 @@ def get_openai_size_for_aspect_ratio(aspect_ratio: str) -> str:
             f"Supported values: {sorted(OPENAI_SIZE_BY_ASPECT_RATIO.keys())}"
         )
     return size
-

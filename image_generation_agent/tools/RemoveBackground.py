@@ -3,15 +3,15 @@
 import io
 import os
 from pathlib import Path
-from dotenv import load_dotenv
 from urllib.parse import urlparse
 
 import fal_client
 import requests
+from agency_swarm import BaseTool
+from dotenv import load_dotenv
 from PIL import Image
 from pydantic import Field, field_validator
 
-from agency_swarm import BaseTool
 from shared_tools.model_availability import image_model_availability_message
 
 from .utils.image_io import (
@@ -67,7 +67,11 @@ class RemoveBackground(BaseTool):
         image_url = self._resolve_to_upload_url(images_dir, fal)
         result = fal.subscribe(
             FAL_ENDPOINT,
-            arguments={"image_url": image_url, "output_format": "rgba", "sync_mode": False},
+            arguments={
+                "image_url": image_url,
+                "output_format": "rgba",
+                "sync_mode": False,
+            },
         )
 
         result_url = (result.get("image") or {}).get("url")
@@ -102,6 +106,7 @@ class RemoveBackground(BaseTool):
         response = requests.get(url, timeout=30)
         response.raise_for_status()
         return Image.open(io.BytesIO(response.content)).convert("RGBA")
+
 
 if __name__ == "__main__":
     tool = RemoveBackground(

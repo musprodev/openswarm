@@ -8,7 +8,16 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 # Extensions we consider valid for slide images (PPTX-friendly)
-VALID_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".tif", ".webp"}
+VALID_IMAGE_EXTENSIONS = {
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".bmp",
+    ".tiff",
+    ".tif",
+    ".webp",
+}
 
 
 def ensure_full_html(html_content: str) -> tuple[str, bool]:
@@ -153,8 +162,14 @@ def _validate_image_refs(project_dir: Path, html_content: str) -> list[str]:
         try:
             with open(full_path, "rb") as f:
                 header = f.read(32)
-            if header.startswith(b"<") or header.startswith(b"<!") or b"<html" in header[:50].lower():
-                errors.append(f"Image '{ref}' is not a valid image file (looks like HTML). Re-download with DownloadImage.")
+            if (
+                header.startswith(b"<")
+                or header.startswith(b"<!")
+                or b"<html" in header[:50].lower()
+            ):
+                errors.append(
+                    f"Image '{ref}' is not a valid image file (looks like HTML). Re-download with DownloadImage."
+                )
         except Exception:
             pass
     return errors
@@ -168,11 +183,13 @@ def validate_html(html_content: str, project_dir: Path, used_scaffold: bool) -> 
     errors.extend(_validate_image_refs(project_dir, html_content))
 
     if re.search(r"[\U0001F300-\U0001FAFF]", html_content):
-        errors.append(
-            "Emoji/Unicode symbols detected. Use image icons (PNG) instead of emoji."
-        )
+        errors.append("Emoji/Unicode symbols detected. Use image icons (PNG) instead of emoji.")
 
-    if re.search(r"<span[^>]*class=[\"'][^\"']*\\bdot\\b[^\"']*[\"'][^>]*>\\s*</span>", html_content, flags=re.IGNORECASE):
+    if re.search(
+        r"<span[^>]*class=[\"'][^\"']*\\bdot\\b[^\"']*[\"'][^>]*>\\s*</span>",
+        html_content,
+        flags=re.IGNORECASE,
+    ):
         errors.append(
             "Detected empty .dot spans used as colored bullets. Replace with inline SVG circles or image assets to ensure PPTX rendering."
         )
@@ -208,7 +225,9 @@ def validate_html(html_content: str, project_dir: Path, used_scaffold: bool) -> 
             page.goto(f"file://{temp_path}", wait_until="load")
 
             if not used_scaffold and "_theme.css" not in html_content:
-                errors.append("Missing theme link: include <link rel=\"stylesheet\" href=\"./_theme.css\" />")
+                errors.append(
+                    'Missing theme link: include <link rel="stylesheet" href="./_theme.css" />'
+                )
 
             body_dims = page.evaluate("""() => {
                 const body = document.body;
@@ -239,7 +258,9 @@ def validate_html(html_content: str, project_dir: Path, used_scaffold: bool) -> 
 
             if height_overflow > 0:
                 errors.append(f"Content overflows vertically by {height_overflow:.0f}px")
-                errors.append("  💡 Hint: Reduce content height, use smaller font, or move elements up from the bottom edge.")
+                errors.append(
+                    "  💡 Hint: Reduce content height, use smaller font, or move elements up from the bottom edge."
+                )
 
             # Check for descender clipping (elements too close to the bottom edge)
             descender_issues = page.evaluate("""() => {
@@ -263,7 +284,9 @@ def validate_html(html_content: str, project_dir: Path, used_scaffold: bool) -> 
 
             if descender_issues:
                 for issue in descender_issues[:2]:
-                    errors.append(f"Text \"{issue['text']}...\" is too close to the bottom edge ({issue['dist']:.1f}px). Descenders (like 'g', 'y', 'p') may be clipped.")
+                    errors.append(
+                        f"Text \"{issue['text']}...\" is too close to the bottom edge ({issue['dist']:.1f}px). Descenders (like 'g', 'y', 'p') may be clipped."
+                    )
                 errors.append("  💡 Hint: Move the element up by at least 5-10px for safety.")
 
             if width_overflow > 0 or height_overflow > 0:
@@ -325,7 +348,7 @@ def validate_html(html_content: str, project_dir: Path, used_scaffold: bool) -> 
             if unwrapped:
                 errors.append("Found unwrapped text in DIV elements:")
                 for text in unwrapped[:3]:
-                    errors.append(f"  - \"{text}\"")
+                    errors.append(f'  - "{text}"')
                 errors.append("  💡 Hint: Wrap all text in <p>, <h1>-<h6>, <ul>, or <ol> tags")
 
             browser.close()

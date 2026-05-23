@@ -4,16 +4,15 @@ import os
 import subprocess
 import tempfile
 
-from pydantic import Field, field_validator
-
 from agency_swarm import BaseTool, ToolOutputText
+from pydantic import Field, field_validator
 
 from .utils.video_utils import get_videos_dir, resolve_ffmpeg_executable
 
 
 class CombineVideos(BaseTool):
     """Combine multiple videos into a single video using instant cut transitions (ffmpeg).
-    
+
     Videos are saved to: mnt/{product_name}/generated_videos/
     """
 
@@ -65,9 +64,11 @@ class CombineVideos(BaseTool):
 
         output_path = os.path.join(videos_dir, f"{self.name}.mp4")
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8') as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".txt", delete=False, encoding="utf-8"
+        ) as f:
             for path in video_paths:
-                abs_path = os.path.abspath(path).replace('\\', '/')
+                abs_path = os.path.abspath(path).replace("\\", "/")
                 escaped_path = abs_path.replace("'", "'\\''")
                 f.write(f"file '{escaped_path}'\n")
             concat_file = f.name
@@ -76,12 +77,16 @@ class CombineVideos(BaseTool):
             ffmpeg_executable = resolve_ffmpeg_executable()
             cmd = [
                 ffmpeg_executable,
-                '-f', 'concat',
-                '-safe', '0',
-                '-i', concat_file,
-                '-c', 'copy',  # copy streams without re-encoding
-                '-y',
-                output_path
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                concat_file,
+                "-c",
+                "copy",  # copy streams without re-encoding
+                "-y",
+                output_path,
             ]
             result = subprocess.run(cmd, capture_output=True, text=True)
             if result.returncode != 0:
@@ -105,9 +110,13 @@ if __name__ == "__main__":
     # Example usage
     tool = CombineVideos(
         product_name="Test_Product",
-        video_names=["herbaluxe_01_hook_v2","herbaluxe_02_formula","herbaluxe_03_result_consistency_fix","herbaluxe_04_cta"],
+        video_names=[
+            "herbaluxe_01_hook_v2",
+            "herbaluxe_02_formula",
+            "herbaluxe_03_result_consistency_fix",
+            "herbaluxe_04_cta",
+        ],
         name="x_combine_test",
     )
     result = tool.run()
     print(result)
-

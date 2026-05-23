@@ -1,6 +1,6 @@
 from agency_swarm import Agent, ModelSettings
-from openai.types.shared import Reasoning
 from dotenv import load_dotenv
+from openai.types.shared import Reasoning
 
 from config import get_default_model, is_openai_provider
 
@@ -30,4 +30,5 @@ def create_orchestrator() -> Agent:
 
 if __name__ == "__main__":
     from agency_swarm import Agency
+
     Agency(create_orchestrator()).terminal_demo()

@@ -1,10 +1,10 @@
+import subprocess
 import tempfile
 from pathlib import Path
-from typing import Optional
 
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
-import subprocess
+
 from .html_docx_page import _extract_page_geometry_pt
 
 _PT_TO_PX = 96.0 / 72.0
@@ -45,9 +45,11 @@ def auto_page_breaks(html_content: str) -> str:
             page.emulate_media(media="print")
             page.route(
                 "**/*",
-                lambda route, request: route.abort()
-                if request.resource_type in {"media", "font"}
-                else route.continue_(),
+                lambda route, request: (
+                    route.abort()
+                    if request.resource_type in {"media", "font"}
+                    else route.continue_()
+                ),
             )
             page.goto(tmp_path.as_uri(), wait_until="load")
 
@@ -121,9 +123,11 @@ def _compute_table_auto_widths(html_content: str) -> dict[int, list[float]]:
         page = browser.new_page(viewport={"width": 1200, "height": 1600})
         page.route(
             "**/*",
-            lambda route, request: route.abort()
-            if request.resource_type in {"image", "media", "font"}
-            else route.continue_(),
+            lambda route, request: (
+                route.abort()
+                if request.resource_type in {"image", "media", "font"}
+                else route.continue_()
+            ),
         )
         page.set_content(html_content, wait_until="domcontentloaded")
         tables = page.query_selector_all("table[data-docx-table-idx]")
@@ -151,7 +155,7 @@ def _compute_table_auto_widths(html_content: str) -> dict[int, list[float]]:
 
 def _extract_auto_widths(
     table_node, table_auto_widths: dict[int, list[float]], column_count: int
-) -> Optional[list[float]]:
+) -> list[float] | None:
     idx_value = table_node.get("data-docx-table-idx")
     if idx_value is None:
         return None

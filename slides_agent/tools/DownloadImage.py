@@ -48,6 +48,7 @@ class DownloadImage(BaseTool):
             else:
                 try:
                     from PIL import Image
+
                     with Image.open(output_path) as img:
                         img.verify()
                 except Exception:
@@ -74,6 +75,6 @@ if __name__ == "__main__":
     tool = DownloadImage(
         project_name="openclaw_presentation_v3",
         url="https://raw.githubusercontent.com/openclaw/openclaw/main/docs/assets/sponsors/convex.svg",
-        image_name="sponsor_convex.svg"
+        image_name="sponsor_convex.svg",
     )
     print(tool.run())

@@ -1,5 +1,4 @@
 import os
-from typing import Optional
 
 from agency_swarm.tools import BaseTool
 from pydantic import Field
@@ -15,11 +14,11 @@ class ListDirectory(BaseTool):
         ...,
         description="The absolute path to the directory to list",
     )
-    recursive: Optional[bool] = Field(
+    recursive: bool | None = Field(
         False,
         description="If True, list files recursively up to 3 levels deep. Default is False.",
     )
-    max_depth: Optional[int] = Field(
+    max_depth: int | None = Field(
         3,
         description="Maximum depth for recursive listing. Default is 3.",
     )
@@ -80,9 +79,7 @@ class ListDirectory(BaseTool):
                     if os.path.isdir(entry_path):
                         result.append(f"{prefix}{connector}{entry}/\n")
                         if self.recursive and depth < self.max_depth:
-                            result.append(
-                                list_dir_tree(entry_path, new_prefix, depth + 1)
-                            )
+                            result.append(list_dir_tree(entry_path, new_prefix, depth + 1))
                     else:
                         result.append(f"{prefix}{connector}{entry}\n")
 
@@ -109,5 +106,3 @@ if __name__ == "__main__":
     tool = ListDirectory(directory_path=current_dir, recursive=True)
     print("Listing directory structure:")
     print(tool.run())
-
-

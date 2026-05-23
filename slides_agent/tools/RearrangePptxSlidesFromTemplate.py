@@ -2,7 +2,6 @@
 
 import sys
 from pathlib import Path
-from typing import List, Union
 
 from agency_swarm.tools import BaseTool
 from pydantic import Field
@@ -32,7 +31,7 @@ class RearrangePptxSlidesFromTemplate(BaseTool):
         ...,
         description="Path where the rearranged presentation will be saved",
     )
-    slide_sequence: Union[str, List[int]] = Field(
+    slide_sequence: str | list[int] = Field(
         ...,
         description="Comma-separated string or list of 0-based slide indices (e.g., '0,5,5,12,3' or [0,5,5,12,3])",
     )
@@ -48,12 +47,12 @@ class RearrangePptxSlidesFromTemplate(BaseTool):
         """Rearrange slides and save the new presentation."""
         import sys
         from pathlib import Path as PathLib
-        
+
         # Add pptx/scripts to path for rearrange import
         scripts_dir = PathLib(__file__).parent.parent / "pptx" / "scripts"
         if str(scripts_dir) not in sys.path:
             sys.path.insert(0, str(scripts_dir))
-        
+
         from rearrange import rearrange_presentation  # type: ignore
 
         template_path = Path(self.template_pptx)

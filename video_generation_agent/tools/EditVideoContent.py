@@ -4,17 +4,17 @@ import asyncio
 import logging
 import os
 import re
-from dotenv import load_dotenv
-import cv2
-import httpx
-from typing import Annotated, Literal, Optional, Union
+from typing import Annotated, Literal
 
+import cv2
 import fal_client
-from pydantic import BaseModel, Field, field_validator
+import httpx
+from agency_swarm import BaseTool, ToolOutputText
+from dotenv import load_dotenv
 from google.genai import types
 from PIL import Image
+from pydantic import BaseModel, Field, field_validator
 
-from agency_swarm import BaseTool, ToolOutputText
 from shared_tools.model_availability import video_model_availability_message
 
 from .utils.video_utils import (
@@ -23,9 +23,9 @@ from .utils.video_utils import (
     generate_spritesheet,
     get_gemini_client,
     get_openai_client,
-    save_video_with_metadata,
-    save_veo_video_with_metadata,
     get_videos_dir,
+    save_veo_video_with_metadata,
+    save_video_with_metadata,
 )
 
 _VEO_MODEL = "veo-3.1-generate-preview"
@@ -49,7 +49,7 @@ class EditMode(BaseModel):
         ...,
         description="Editing prompt.",
     )
-    reference_images: Optional[list[str]] = Field(
+    reference_images: list[str] | None = Field(
         default=None,
         description="Optional reference image paths or URLs.",
     )
@@ -106,7 +106,7 @@ class ExtendMode(BaseModel):
             "(e.g., 'files/abc123' or a Veo download URL)."
         ),
     )
-    prompt: Optional[str] = Field(
+    prompt: str | None = Field(
         default=None,
         description="Optional extension prompt.",
     )
@@ -118,7 +118,7 @@ class ExtendMode(BaseModel):
 
     @field_validator("prompt")
     @classmethod
-    def _prompt_not_blank(cls, value: Optional[str]) -> Optional[str]:
+    def _prompt_not_blank(cls, value: str | None) -> str | None:
         if value is None:
             return value
         if re.match(r"^\[.*\]", value) or re.match(r"^\[.*?\]\s+.+", value):
@@ -130,7 +130,7 @@ class ExtendMode(BaseModel):
 
 
 EditModeUnion = Annotated[
-    Union[EditMode, RemixMode, ExtendMode],
+    EditMode | RemixMode | ExtendMode,
     Field(discriminator="action"),
 ]
 
@@ -150,11 +150,10 @@ class EditVideoContent(BaseTool):
         ...,
         description="The name for the edited video file (without extension)",
     )
-    mode: Union[EditMode, RemixMode, ExtendMode] = Field(
+    mode: EditMode | RemixMode | ExtendMode = Field(
         ...,
         description=(
-            "Action-specific inputs. Use the 'action' field to select which "
-            "mode shape is required."
+            "Action-specific inputs. Use the 'action' field to select which mode shape is required."
         ),
     )
 
@@ -280,9 +279,10 @@ class EditVideoContent(BaseTool):
 
         while not operation.done:
             await asyncio.sleep(10)
+            op = operation
             operation = await loop.run_in_executor(
                 None,
-                lambda: client.operations.get(operation),
+                lambda o=op: client.operations.get(o),
             )
 
         generated_video = operation.response.generated_videos[0]
@@ -298,7 +298,7 @@ class EditVideoContent(BaseTool):
             return "fal-ai/kling-video/o3/standard/video-to-video/edit"
         raise ValueError(f"Unsupported fal.ai action: {action}")
 
-    def _resolve_media_url(self, value: Optional[str], fal: fal_client.SyncClient) -> str:
+    def _resolve_media_url(self, value: str | None, fal: fal_client.SyncClient) -> str:
         if value is None:
             raise ValueError("Media source is required")
 
@@ -309,29 +309,29 @@ class EditVideoContent(BaseTool):
         path = os.path.expanduser(value)
         if os.path.exists(path):
             return fal.upload_file(path)
-        
+
         # Try in product's generated_videos directory
         videos_dir = get_videos_dir(self.product_name)
-        
+
         # Try with common video extensions
         for ext in [".mp4", ".mov", ".avi", ".webm"]:
             # Try with extension
             video_path = os.path.join(videos_dir, f"{value}{ext}")
             if os.path.exists(video_path):
                 return fal.upload_file(video_path)
-            
+
             # Try without adding extension (in case value already has one)
             video_path = os.path.join(videos_dir, value)
             if os.path.exists(video_path):
                 return fal.upload_file(video_path)
-        
+
         raise FileNotFoundError(
             f"Video file not found: '{value}'\n"
             f"  Searched in: {videos_dir}\n"
             f"  Also tried as absolute/relative path: {path}"
         )
 
-    def _extract_video_url(self, result: dict) -> Optional[str]:
+    def _extract_video_url(self, result: dict) -> str | None:
         video_info = result.get("video")
         if isinstance(video_info, dict):
             return video_info.get("url")
@@ -359,6 +359,7 @@ class EditVideoContent(BaseTool):
         thumbnail_image.save(output_path)
 
         return thumbnail_image
+
 
 if __name__ == "__main__":
     tool = EditVideoContent(

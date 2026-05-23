@@ -7,7 +7,6 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Optional
 
 from agency_swarm.tools import BaseTool, LoadFileAttachment
 from pydantic import Field
@@ -29,7 +28,7 @@ class CheckSlide(BaseTool):
         ...,
         description="Path to a single HTML slide or a PPTX file",
     )
-    output_image_path: Optional[str] = Field(
+    output_image_path: str | None = Field(
         default=None,
         description="Optional output image path (.jpg). Defaults next to slide.",
     )
@@ -68,8 +67,8 @@ class CheckSlide(BaseTool):
 
     def _screenshot_html(self, html_path: Path) -> Path:
         """Direct Playwright screenshot — fast, no PPTX/PDF round-trip."""
-        from playwright.sync_api import sync_playwright
         from PIL import Image
+        from playwright.sync_api import sync_playwright
 
         output_path = self._resolve_output_path(html_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -116,14 +115,14 @@ class CheckSlide(BaseTool):
     def _render_pptx_slide(self, pptx_path: Path, source_path: Path) -> Path:
         import sys
         from pathlib import Path as PathLib
-        
+
         # Add pptx/scripts to path for thumbnail import
         scripts_dir = PathLib(__file__).parent.parent / "pptx" / "scripts"
         if str(scripts_dir) not in sys.path:
             sys.path.insert(0, str(scripts_dir))
-        
-        from thumbnail import convert_to_images  # type: ignore
+
         from PIL import Image
+        from thumbnail import convert_to_images  # type: ignore
 
         output_path = self._resolve_output_path(source_path)
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -138,15 +137,15 @@ class CheckSlide(BaseTool):
 
             selected = Path(slide_images[self.slide_index - 1])
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            
+
             # Compress image to reduce token usage
             img = Image.open(selected)
             # Resize to 75% of original (reduces token usage significantly)
             new_size = (int(img.width * 0.75), int(img.height * 0.75))
             img = img.resize(new_size, Image.Resampling.LANCZOS)
             # Save with moderate JPEG quality
-            img.save(output_path, 'JPEG', quality=75, optimize=True)
-            
+            img.save(output_path, "JPEG", quality=75, optimize=True)
+
             return output_path
 
     def _resolve_output_path(self, pptx_path: Path) -> Path:
@@ -209,9 +208,15 @@ class CheckSlide(BaseTool):
 
 if __name__ == "__main__":
     repo_root = Path(__file__).resolve().parents[2]
-    test_pptx = repo_root / "mnt/claude_cowork_deck/presentations/claude_cowork_deck_v5_rendered.pptx"
+    test_pptx = (
+        repo_root / "mnt/claude_cowork_deck/presentations/claude_cowork_deck_v5_rendered.pptx"
+    )
     if test_pptx.exists():
-        tool = CheckSlide(slide_path="mnt/claude_cowork_deck/presentations/claude_cowork_deck_v5_rendered.pptx", slide_index=3, output_image_path="mnt/claude_cowork_deck/presentations/_v5_prev3.jpg")
+        tool = CheckSlide(
+            slide_path="mnt/claude_cowork_deck/presentations/claude_cowork_deck_v5_rendered.pptx",
+            slide_index=3,
+            output_image_path="mnt/claude_cowork_deck/presentations/_v5_prev3.jpg",
+        )
         print(tool.run())
     else:
         print(f"Test file not found: {test_pptx}")

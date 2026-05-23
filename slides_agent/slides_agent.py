@@ -1,30 +1,36 @@
-from agency_swarm import Agent, ModelSettings
-from agency_swarm.tools import IPythonInterpreter, PersistentShellTool, LoadFileAttachment, WebSearchTool
-from datetime import datetime, timezone
-from openai.types.shared import Reasoning
+from datetime import UTC, datetime
 from pathlib import Path
-from virtual_assistant.tools.ReadFile import ReadFile
-from shared_tools.CopyFile import CopyFile
+
+from agency_swarm import Agent, ModelSettings
+from agency_swarm.tools import (
+    IPythonInterpreter,
+    LoadFileAttachment,
+    PersistentShellTool,
+    WebSearchTool,
+)
+from openai.types.shared import Reasoning
 
 from config import get_default_model, is_openai_provider
+from shared_tools.CopyFile import CopyFile
+from virtual_assistant.tools.ReadFile import ReadFile
 
 # Import slide tools
 from .tools import (
-    InsertNewSlides,
-    ModifySlide,
-    ManageTheme,
-    DeleteSlide,
-    SlideScreenshot,
-    ReadSlide,
     BuildPptxFromHtmlSlides,
-    RestoreSnapshot,
-    CreatePptxThumbnailGrid,
-    CheckSlideCanvasOverflow,
     CheckSlide,
+    CheckSlideCanvasOverflow,
+    CreatePptxThumbnailGrid,
+    DeleteSlide,
     DownloadImage,
     EnsureRasterImage,
-    ImageSearch,
     GenerateImage,
+    ImageSearch,
+    InsertNewSlides,
+    ManageTheme,
+    ModifySlide,
+    ReadSlide,
+    RestoreSnapshot,
+    SlideScreenshot,
 )
 
 _INSTRUCTIONS_PATH = Path(__file__).parent / "instructions.md"
@@ -32,6 +38,7 @@ _INSTRUCTIONS_PATH = Path(__file__).parent / "instructions.md"
 
 def _list_existing_projects() -> str:
     from .tools.slide_file_utils import get_mnt_dir
+
     base = get_mnt_dir()
     if not base.exists():
         return "(none)"
@@ -40,7 +47,7 @@ def _list_existing_projects() -> str:
 
 
 def _build_instructions() -> str:
-    now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    now_utc = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     body = _INSTRUCTIONS_PATH.read_text(encoding="utf-8")
     projects_block = _list_existing_projects()
     return (
@@ -105,4 +112,5 @@ def create_slides_agent() -> Agent:
 
 if __name__ == "__main__":
     from agency_swarm import Agency
+
     Agency(create_slides_agent()).terminal_demo(reload=False)

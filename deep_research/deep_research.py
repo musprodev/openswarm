@@ -1,9 +1,9 @@
 from agency_swarm import Agent, ModelSettings
-from agency_swarm.tools import WebSearchTool, IPythonInterpreter
+from agency_swarm.tools import IPythonInterpreter, WebSearchTool
 from openai.types.shared import Reasoning
-from virtual_assistant.tools.ScholarSearch import ScholarSearch
 
 from config import get_default_model, is_openai_provider
+from virtual_assistant.tools.ScholarSearch import ScholarSearch
 
 
 def create_deep_research() -> Agent:

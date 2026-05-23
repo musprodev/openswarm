@@ -2,16 +2,17 @@
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Literal, Union
+from typing import Literal
 
 from agency_swarm.tools import BaseTool, ToolOutputText, tool_output_image_from_path
 from playwright.sync_api import sync_playwright
 from pydantic import BaseModel, Field
-from .utils.html_validation import build_unsupported_error, find_unsupported_html
-from .utils.html_docx_playwright import _launch_chromium_with_install
-from .utils.html_docx_constants import _UA_RESET_STYLE
+
 from .utils.doc_file_utils import get_project_dir
+from .utils.html_docx_constants import _UA_RESET_STYLE
 from .utils.html_docx_images import embed_local_images
+from .utils.html_docx_playwright import _launch_chromium_with_install
+from .utils.html_validation import build_unsupported_error, find_unsupported_html
 
 
 class HtmlContent(BaseModel):
@@ -24,42 +25,42 @@ class MarkdownContent(BaseModel):
     value: str
 
 
-ContentInput = Union[HtmlContent, MarkdownContent]
+ContentInput = HtmlContent | MarkdownContent
 
 
 class CreateDocument(BaseTool):
     """
     Create a new document from HTML or Markdown content.
-    
+
     HTML workflow creates:
     - .source.html file (the canonical source of truth)
 
     Markdown workflow creates:
     - .md file only (no .docx or .pdf generation)
-    
+
     HTML is used as the source format because it provides:
     - Full styling control (fonts, colors, spacing, etc.)
     - Standard conversion tools (weasyprint)
     - WYSIWYG editing experience
     - Easy web preview capability
-    
+
     Use this tool to create new documents with custom formatting and styling.
     """
-    
+
     project_name: str = Field(
         ...,
-        description="Name of the project folder (creates/uses ./mnt/{project_name}/documents/). Use lowercase with underscores (e.g., 'business_proposals', 'client_reports')"
+        description="Name of the project folder (creates/uses ./mnt/{project_name}/documents/). Use lowercase with underscores (e.g., 'business_proposals', 'client_reports')",
     )
-    
+
     document_name: str = Field(
         ...,
-        description="Name of the document file without extension (e.g., 'quarterly_report', 'contract_template'). Extension will be added automatically."
+        description="Name of the document file without extension (e.g., 'quarterly_report', 'contract_template'). Extension will be added automatically.",
     )
-    
+
     content: ContentInput = Field(
         ...,
         description="""Content object for the document.
-        
+
 HTML example:
 {
   "type": "html",
@@ -71,12 +72,12 @@ Markdown example:
   "type": "markdown",
   "value": "# Title\\n\\n- Item"
 }
-        """
+        """,
     )
-    
+
     overwrite: bool = Field(
         default=False,
-        description="If True, overwrites existing document. If False (default), returns an error if document already exists."
+        description="If True, overwrites existing document. If False (default), returns an error if document already exists.",
     )
 
     def run(self):
@@ -88,9 +89,7 @@ Markdown example:
 
             # Strip extension if the caller included one
             doc_name = (
-                self.document_name.replace(".html", "")
-                .replace(".docx", "")
-                .replace(".md", "")
+                self.document_name.replace(".html", "").replace(".docx", "").replace(".md", "")
             )
 
             content_value = self.content.value
@@ -99,22 +98,22 @@ Markdown example:
 
             if self.content.type == "markdown":
                 return self._create_markdown(doc_name, project_dir, content_value)
-            
+
             source_path = project_dir / f"{doc_name}.source.html"
-            
+
             if source_path.exists() and not self.overwrite:
                 return f"Error: Document '{doc_name}' already exists in project '{self.project_name}'. Use overwrite=True to replace it, or choose a different document name."
-            
+
             normalized_html = _ensure_ua_reset(content_value)
             issues = find_unsupported_html(normalized_html)
             if issues:
                 return build_unsupported_error(issues)
-            source_path.write_text(normalized_html, encoding='utf-8')
-            
+            source_path.write_text(normalized_html, encoding="utf-8")
+
             source_size = source_path.stat().st_size
-            
+
             operation = "updated" if self.overwrite and source_path.exists() else "created"
-            
+
             message = f"""Successfully {operation} document
 
 Project: {self.project_name}
@@ -135,7 +134,7 @@ Note: The .source.html file is the canonical source to be used for document conv
                 ToolOutputText(text=message),
                 preview,
             ]
-            
+
         except Exception as e:
             return f"Error creating document: {str(e)}"
 
@@ -161,6 +160,7 @@ Files created:
 Path: {md_path}
 
 Note: Markdown workflow only creates a .md file and does not generate .docx or .pdf files."""
+
 
 def _build_html_preview_image(html_content: str, base_dir: Path):
     """Render a preview JPEG of the HTML document.
@@ -208,6 +208,7 @@ def _build_html_preview_image(html_content: str, base_dir: Path):
     finally:
         tmp_html_path.unlink(missing_ok=True)
 
+
 def _ensure_ua_reset(html_content: str) -> str:
     """Ensure a UA reset style exists in the HTML head."""
     if "UA reset to neutralize browser defaults" in html_content:
@@ -218,22 +219,19 @@ def _ensure_ua_reset(html_content: str) -> str:
     if head_index != -1:
         head_close = lower.find(">", head_index)
         if head_close != -1:
-            return (
-                html_content[: head_close + 1]
-                + _UA_RESET_STYLE
-                + html_content[head_close + 1 :]
-            )
+            return html_content[: head_close + 1] + _UA_RESET_STYLE + html_content[head_close + 1 :]
 
     if "<html" in lower:
         return html_content.replace("<html>", f"<html><head>{_UA_RESET_STYLE}</head>", 1)
 
     return f"<!DOCTYPE html><html><head>{_UA_RESET_STYLE}</head><body>{html_content}</body></html>"
 
+
 if __name__ == "__main__":
     print("=" * 70)
     print("TEST: CreateDocument Tool")
     print("=" * 70)
-    print()    
+    print()
     html_simple = """<!DOCTYPE html>
 <html>
 <head>
@@ -242,20 +240,20 @@ if __name__ == "__main__":
 </head>
 <body>
     <h1 style="color: #0066cc; font-family: Arial, sans-serif;">Business Proposal</h1>
-    
+
     <h2 style="color: #333; font-family: Arial, sans-serif;">Executive Summary</h2>
     <p style="font-family: Georgia, serif; font-size: 11pt; line-height: 1.5;">
         This proposal outlines our comprehensive approach to solving your business challenges.
         We bring extensive experience and proven methodologies to deliver results.
     </p>
-    
+
     <h2 style="color: #333; font-family: Arial, sans-serif;">Our Services</h2>
     <ul style="font-family: Georgia, serif; font-size: 11pt; line-height: 1.5;">
         <li><strong>Consulting:</strong> Strategic business advisory</li>
         <li><strong>Implementation:</strong> End-to-end project execution</li>
         <li><strong>Support:</strong> Ongoing maintenance and optimization</li>
     </ul>
-    
+
     <h2 style="color: #333; font-family: Arial, sans-serif;">Pricing</h2>
     <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 10pt;">
         <tr style="background: #0066cc; color: white;">
@@ -277,7 +275,7 @@ if __name__ == "__main__":
     </table>
 </body>
 </html>"""
-    
+
     tool = CreateDocument(
         project_name="test_project",
         document_name="business_proposal",

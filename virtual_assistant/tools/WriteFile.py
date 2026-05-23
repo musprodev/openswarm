@@ -51,7 +51,7 @@ class WriteFile(BaseTool):
 
                 abs_path = os.path.abspath(self.file_path)
                 try:
-                    if hasattr(self, '_context') and self._context is not None:
+                    if hasattr(self, "_context") and self._context is not None:
                         read_files = self._context.get("read_files", set())
                         read_files.add(abs_path)
                         self._context.set("read_files", read_files)
@@ -92,4 +92,3 @@ if __name__ == "__main__":
     if os.path.exists(test_file_path):
         os.remove(test_file_path)
         print("\nTest file cleaned up.")
-

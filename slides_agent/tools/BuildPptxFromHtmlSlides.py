@@ -4,7 +4,6 @@ import os
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import List, Optional
 
 from agency_swarm.tools import BaseTool
 from pydantic import Field
@@ -34,7 +33,7 @@ class BuildPptxFromHtmlSlides(BaseTool):
         ...,
         description="Presentation project folder name (e.g. 'my_pitch')",
     )
-    slide_names: List[str] = Field(
+    slide_names: list[str] = Field(
         ...,
         description=(
             "Ordered list of slide names to include, e.g. ['slide_01', 'slide_02']. "
@@ -55,7 +54,7 @@ class BuildPptxFromHtmlSlides(BaseTool):
             "LAYOUT_16x9_1920 (1920x1080 HTML), LAYOUT_16x9, LAYOUT_4x3, or LAYOUT_16x10"
         ),
     )
-    tmp_dir: Optional[str] = Field(
+    tmp_dir: str | None = Field(
         default=None,
         description="Optional temporary directory for intermediate files",
     )
@@ -71,11 +70,21 @@ class BuildPptxFromHtmlSlides(BaseTool):
         if not html_paths:
             return "Error: No slide names provided"
 
-        valid_layouts = ["LAYOUT_16x9_1280", "LAYOUT_16x9_1920", "LAYOUT_16x9", "LAYOUT_4x3", "LAYOUT_16x10"]
+        valid_layouts = [
+            "LAYOUT_16x9_1280",
+            "LAYOUT_16x9_1920",
+            "LAYOUT_16x9",
+            "LAYOUT_4x3",
+            "LAYOUT_16x10",
+        ]
         if self.layout not in valid_layouts:
-            return f"Error: Invalid layout '{self.layout}'. Must be one of: {', '.join(valid_layouts)}"
+            return (
+                f"Error: Invalid layout '{self.layout}'. Must be one of: {', '.join(valid_layouts)}"
+            )
 
-        output_path = next_pptx_version(self._resolve_output_path(self.output_filename, project_dir))
+        output_path = next_pptx_version(
+            self._resolve_output_path(self.output_filename, project_dir)
+        )
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         if not self._check_node():
@@ -96,9 +105,12 @@ class BuildPptxFromHtmlSlides(BaseTool):
         cmd = [
             "node",
             str(RUNNER_JS),
-            "--output", str(output_path),
-            "--layout", self.layout,
-            "--tmp-dir", tmp_dir,
+            "--output",
+            str(output_path),
+            "--layout",
+            self.layout,
+            "--tmp-dir",
+            tmp_dir,
             "--",
         ] + html_paths
 
@@ -135,7 +147,7 @@ class BuildPptxFromHtmlSlides(BaseTool):
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _resolve_slide_paths(self, slide_names: List[str], project_dir: Path) -> list[str] | str:
+    def _resolve_slide_paths(self, slide_names: list[str], project_dir: Path) -> list[str] | str:
         """Resolve slide name strings to absolute .html paths."""
         paths = []
         for name in slide_names:

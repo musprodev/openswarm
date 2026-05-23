@@ -11,27 +11,28 @@ import base64
 import mimetypes
 import os
 import re
-from dotenv import load_dotenv
 import tempfile
 import threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from agency_swarm import Agent, ModelSettings, Reasoning
 from agency_swarm.tools import BaseTool, ToolOutputText, tool_output_image_from_path
 from agents.extensions.models.litellm_model import LitellmModel
+from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from pydantic import Field
 
 from .slide_file_utils import get_project_dir
 from .slide_html_utils import (
+    _strip_html_to_text,
     ensure_full_html,
     list_slide_filenames,
     validate_html,
-    _strip_html_to_text,
 )
 from .template_registry import load_template_index, save_template_index, template_path
+
 # Per-project locks for the template-index read-modify-write.
 _index_locks: dict[str, threading.Lock] = {}
 _index_locks_guard = threading.Lock()
@@ -53,9 +54,9 @@ def _strip_base64_images(html: str) -> str:
     back to the sub-agent as a baseline.
     """
     # Only strip data:image/ URIs — never touch data:text/css or other non-image blobs
-    html = re.sub(r'src=(["\'])data:image/[^"\']+\1', r'src=\1[image]\1', html)
-    html = re.sub(r'url\((["\']?)data:image/[^"\')\s]+\1\)', r'url(\1[image]\1)', html)
-    html = re.sub(r'(href|xlink:href|data)=(["\'])data:image/[^"\']+\2', r'\1=\2[image]\2', html)
+    html = re.sub(r'src=(["\'])data:image/[^"\']+\1', r"src=\1[image]\1", html)
+    html = re.sub(r'url\((["\']?)data:image/[^"\')\s]+\1\)', r"url(\1[image]\1)", html)
+    html = re.sub(r'(href|xlink:href|data)=(["\'])data:image/[^"\']+\2', r"\1=\2[image]\2", html)
     return html
 
 
@@ -70,11 +71,11 @@ def _convert_css_bg_images_to_img_tags(html: str) -> str:
     and background-image/size/position/repeat are stripped from the CSS.
     Accepts both local paths and data: URIs (data URIs are kept as-is in the src).
     """
-    _BG_STRIP_RE = re.compile(
-        r'\bbackground-image\s*:\s*url\([^)]*\)\s*;?\s*'
-        r'|\bbackground-size\s*:\s*[^;]+;\s*'
-        r'|\bbackground-position\s*:\s*[^;]+;\s*'
-        r'|\bbackground-repeat\s*:\s*[^;]+;\s*',
+    _bg_strip_re = re.compile(
+        r"\bbackground-image\s*:\s*url\([^)]*\)\s*;?\s*"
+        r"|\bbackground-size\s*:\s*[^;]+;\s*"
+        r"|\bbackground-position\s*:\s*[^;]+;\s*"
+        r"|\bbackground-repeat\s*:\s*[^;]+;\s*",
         re.IGNORECASE,
     )
 
@@ -100,20 +101,25 @@ def _convert_css_bg_images_to_img_tags(html: str) -> str:
     )
 
     def rewrite_inline(m: re.Match) -> str:
-        before, style_val, url_raw, after = m.group(1), m.group(2), m.group(3), m.group(4)
+        before, style_val, url_raw, after = (
+            m.group(1),
+            m.group(2),
+            m.group(3),
+            m.group(4),
+        )
         url_arg = url_raw.strip("\"' ")
         if not _should_convert(url_arg):
             return m.group(0)
-        clean = _BG_STRIP_RE.sub('', style_val).strip().rstrip(';')
-        return f'{before}{clean}{after}{_img_tag(url_arg)}'
+        clean = _bg_strip_re.sub("", style_val).strip().rstrip(";")
+        return f"{before}{clean}{after}{_img_tag(url_arg)}"
 
     html = inline_re.sub(rewrite_inline, html)
 
     # ── 2. Class-based rules in <style> blocks ───────────────────────────────
     # Collect class → url mapping from <style> blocks
-    style_block_re = re.compile(r'<style[^>]*>(.*?)</style>', re.IGNORECASE | re.DOTALL)
+    style_block_re = re.compile(r"<style[^>]*>(.*?)</style>", re.IGNORECASE | re.DOTALL)
     css_class_bg_re = re.compile(
-        r'\.([a-zA-Z_-][\w-]*)\s*\{([^}]*?background-image\s*:\s*url\(([^)]+)\)[^}]*?)\}',
+        r"\.([a-zA-Z_-][\w-]*)\s*\{([^}]*?background-image\s*:\s*url\(([^)]+)\)[^}]*?)\}",
         re.IGNORECASE | re.DOTALL,
     )
 
@@ -131,18 +137,20 @@ def _convert_css_bg_images_to_img_tags(html: str) -> str:
     # Strip background-image from matching rules in <style> blocks
     def rewrite_style_block(style_m: re.Match) -> str:
         css = style_m.group(1)
+
         def clean_rule(rule_m: re.Match) -> str:
             cls = rule_m.group(1)
             if cls not in class_to_url:
                 return rule_m.group(0)
-            cleaned_body = _BG_STRIP_RE.sub('', rule_m.group(2)).strip().rstrip(';')
-            return f'.{cls} {{{cleaned_body}}}'
-        return f'<style>{css_class_bg_re.sub(clean_rule, css)}</style>'
+            cleaned_body = _bg_strip_re.sub("", rule_m.group(2)).strip().rstrip(";")
+            return f".{cls} {{{cleaned_body}}}"
+
+        return f"<style>{css_class_bg_re.sub(clean_rule, css)}</style>"
 
     html = style_block_re.sub(rewrite_style_block, html)
 
     # Inject <img> as first child of elements that carry a matched class
-    class_pattern = '|'.join(re.escape(c) for c in class_to_url)
+    class_pattern = "|".join(re.escape(c) for c in class_to_url)
     element_re = re.compile(
         rf'(<[a-zA-Z][^>]*?class=["\'][^"\']*?(?:{class_pattern})[^"\']*?["\'][^>]*>)',
         re.IGNORECASE,
@@ -156,14 +164,24 @@ def _convert_css_bg_images_to_img_tags(html: str) -> str:
             return opening
         for cls in classes.group(1).split():
             if cls in class_to_url:
-                return f'{opening}{_img_tag(class_to_url[cls])}'
+                return f"{opening}{_img_tag(class_to_url[cls])}"
         return opening
 
     html = element_re.sub(inject_img, html)
     return html
 
 
-_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico", ".bmp", ".avif"}
+_IMAGE_EXTENSIONS = {
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+    ".svg",
+    ".ico",
+    ".bmp",
+    ".avif",
+}
 
 
 def _is_image_path(src: str) -> bool:
@@ -177,6 +195,7 @@ def _embed_local_images_as_base64(html: str, project_dir: Path) -> str:
     Only processes paths with known image file extensions to avoid
     accidentally encoding scripts, stylesheets, or fonts.
     """
+
     def _encode(src: str) -> str | None:
         if (
             src.startswith("data:")
@@ -207,10 +226,14 @@ def _embed_local_images_as_base64(html: str, project_dir: Path) -> str:
     def replace_href(match: re.Match) -> str:
         attr, quote, src = match.group(1), match.group(2), match.group(3)
         data_uri = _encode(src)
-        return f'{attr}={quote}{data_uri}{quote}' if data_uri else match.group(0)
+        return f"{attr}={quote}{data_uri}{quote}" if data_uri else match.group(0)
 
     html = re.sub(r'src=(["\'])((?!data:|https?://|file://)[^"\']+)\1', replace_src, html)
-    html = re.sub(r'url\((["\']?)((?!data:|https?://|file://)[^"\')\s]+)\1\)', replace_css_url, html)
+    html = re.sub(
+        r'url\((["\']?)((?!data:|https?://|file://)[^"\')\s]+)\1\)',
+        replace_css_url,
+        html,
+    )
     html = re.sub(
         r'(href|xlink:href|data)=(["\'])((?!data:|https?://|file://|#)[^"\']+)\2',
         replace_href,
@@ -224,7 +247,7 @@ _HTML_WRITER_MODEL_OAI = "gpt-5.3-codex"
 _HTML_WRITER_MAX_ATTEMPTS = 3
 
 
-def _get_caller_openai_client(tool) -> "AsyncOpenAI | None":
+def _get_caller_openai_client(tool) -> AsyncOpenAI | None:
     ctx = getattr(tool, "_context", None)
     master = getattr(ctx, "context", None)
     agent_name = getattr(master, "current_agent_name", None)
@@ -246,13 +269,18 @@ class _CodexResponsesModel:
     @classmethod
     def _get_cls(cls):
         if cls._cls is None:
-            from agents import OpenAIResponsesModel
             from dataclasses import replace
 
+            from agents import OpenAIResponsesModel
+
             class _Impl(OpenAIResponsesModel):
-                async def _fetch_response(self, system_instructions, input, model_settings, *args, **kwargs):
+                async def _fetch_response(
+                    self, system_instructions, input, model_settings, *args, **kwargs
+                ):
                     model_settings = replace(model_settings, truncation=None)
-                    return await super()._fetch_response(system_instructions, input, model_settings, *args, **kwargs)
+                    return await super()._fetch_response(
+                        system_instructions, input, model_settings, *args, **kwargs
+                    )
 
             cls._cls = _Impl
         return cls._cls
@@ -283,8 +311,10 @@ async def _agent_get_response(agent: Agent, prompt: str, *, use_stream: bool = F
                 if result is not None:
                     result.final_output = assembled
                 else:
+
                     class _R:
                         final_output = assembled
+
                     result = _R()
             except Exception:
                 pass
@@ -292,7 +322,7 @@ async def _agent_get_response(agent: Agent, prompt: str, *, use_stream: bool = F
     return await agent.get_response(prompt)
 
 
-def _make_html_writer_agent(tool=None) -> "tuple[Agent, bool]":
+def _make_html_writer_agent(tool=None) -> tuple[Agent, bool]:
     """Create a fresh, stateless agent instance for one ModifySlide call.
 
     Model priority:
@@ -307,14 +337,22 @@ def _make_html_writer_agent(tool=None) -> "tuple[Agent, bool]":
     if anthropic_key:
         model = LitellmModel(model=_HTML_WRITER_MODEL_CLAUDE, api_key=anthropic_key)
     else:
-        from agents import OpenAIResponsesModel
         from openai import AsyncOpenAI
+
+        from agents import OpenAIResponsesModel
+
         caller_client = tool and _get_caller_openai_client(tool)
-        client = AsyncOpenAI(
-            api_key=caller_client.api_key,
-            base_url=str(caller_client.base_url),
-        ) if caller_client else AsyncOpenAI()
-        is_codex = bool(caller_client and not str(caller_client.base_url).startswith("https://api.openai.com"))
+        client = (
+            AsyncOpenAI(
+                api_key=caller_client.api_key,
+                base_url=str(caller_client.base_url),
+            )
+            if caller_client
+            else AsyncOpenAI()
+        )
+        is_codex = bool(
+            caller_client and not str(caller_client.base_url).startswith("https://api.openai.com")
+        )
         if is_codex:
             model = _CodexResponsesModel(model=_HTML_WRITER_MODEL_OAI, openai_client=client)
         else:
@@ -404,7 +442,6 @@ def _build_main_text_contents(project_dir: Path, current_slide: str) -> str:
         lines.append(f"  <SLIDE_{i}>{text}</SLIDE_{i}>{marker}")
     lines.append("</MAIN_TEXT_CONTENTS>")
     return "\n".join(lines)
-
 
 
 def _build_sub_run_prompt(
@@ -521,17 +558,27 @@ def _screenshot_html_slide(html_path: Path) -> tuple[Any | None, str]:
         return None, str(exc)
 
 
-
-
 class ModifySlide(BaseTool):
     """Generate/update slide HTML from task brief via sub-agent."""
 
-    project_name: str = Field(..., description="Presentation project folder name under ./mnt/<project_name>/presentations. Only provide the project_name in this field.")
+    project_name: str = Field(
+        ...,
+        description="Presentation project folder name under ./mnt/<project_name>/presentations. Only provide the project_name in this field.",
+    )
     slide_name: str = Field(..., description="Slide filename (e.g., slide_01 or slide_01.html)")
-    task_brief: str = Field(..., description="What to change on this slide. Do not include any HTML in the tool input. HTML is written by the sub-agent inside this tool.")
-    existing_template_key: str | None = Field(default=None, description="Optional template key to load as baseline")
-    save_as_template_key: str | None = Field(default=None, description="Optional template key to save resulting slide")
-    save_as_template_name: str | None = Field(default=None, description="Optional display name for saved template")
+    task_brief: str = Field(
+        ...,
+        description="What to change on this slide. Do not include any HTML in the tool input. HTML is written by the sub-agent inside this tool.",
+    )
+    existing_template_key: str | None = Field(
+        default=None, description="Optional template key to load as baseline"
+    )
+    save_as_template_key: str | None = Field(
+        default=None, description="Optional template key to save resulting slide"
+    )
+    save_as_template_name: str | None = Field(
+        default=None, description="Optional display name for saved template"
+    )
 
     async def run(self):
         load_dotenv(override=True)
@@ -539,7 +586,11 @@ class ModifySlide(BaseTool):
         if not project_dir.exists():
             return f"Project not found: {project_dir}"
 
-        slide_filename = self.slide_name if self.slide_name.lower().endswith(".html") else f"{self.slide_name}.html"
+        slide_filename = (
+            self.slide_name
+            if self.slide_name.lower().endswith(".html")
+            else f"{self.slide_name}.html"
+        )
         slide_path = project_dir / slide_filename
         if not slide_path.exists():
             return f"Slide not found: {slide_filename}"
@@ -589,7 +640,10 @@ class ModifySlide(BaseTool):
                 final_result = await _agent_get_response(writer, prompt, use_stream=is_codex)
             except Exception as exc:
                 import traceback
-                last_validation_error = f"Sub-agent error (attempt {attempt}): {exc}\n{traceback.format_exc()}"
+
+                last_validation_error = (
+                    f"Sub-agent error (attempt {attempt}): {exc}\n{traceback.format_exc()}"
+                )
                 continue
             sub_results.append(final_result)
 
@@ -598,7 +652,9 @@ class ModifySlide(BaseTool):
             if final_result is None:
                 last_validation_error = f"Sub-agent returned no result on attempt {attempt} (possible rate limit or API error)."
                 continue
-            api_error = getattr(final_result, "error", None) or getattr(final_result, "last_error", None)
+            api_error = getattr(final_result, "error", None) or getattr(
+                final_result, "last_error", None
+            )
             if api_error:
                 last_validation_error = f"Sub-agent API error (attempt {attempt}): {api_error}"
                 continue
@@ -610,7 +666,9 @@ class ModifySlide(BaseTool):
                 continue
 
             full_html, used_scaffold = ensure_full_html(candidate_html)
-            validation = await asyncio.to_thread(validate_html, full_html, project_dir, used_scaffold)
+            validation = await asyncio.to_thread(
+                validate_html, full_html, project_dir, used_scaffold
+            )
             if validation.get("valid"):
                 final_html = full_html
                 break
@@ -633,7 +691,7 @@ class ModifySlide(BaseTool):
                 fresh_index[key] = {
                     "name": (self.save_as_template_name or key).strip(),
                     "source_slide": slide_filename,
-                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_at": datetime.now(UTC).isoformat(),
                 }
                 save_template_index(project_dir, fresh_index)
             save_note = f"\nSaved template: {key}."
@@ -647,6 +705,11 @@ class ModifySlide(BaseTool):
             return f"{success_msg}\n Screenshot failed: {screenshot_err}"
         return success_msg
 
+
 if __name__ == "__main__":
-    modify_slide = ModifySlide(project_name="universe_5slide_deck", slide_name="slide_06", task_brief="""Generate a plain string saying hello world""")
+    modify_slide = ModifySlide(
+        project_name="universe_5slide_deck",
+        slide_name="slide_06",
+        task_brief="""Generate a plain string saying hello world""",
+    )
     print(asyncio.run(modify_slide.run()))

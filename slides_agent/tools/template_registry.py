@@ -52,4 +52,3 @@ def save_template_index(project_dir: Path, index_data: dict[str, dict[str, Any]]
 def template_path(project_dir: Path, template_key: str) -> Path:
     ensure_template_dir(project_dir)
     return _templates_dir(project_dir) / f"{template_key}.html"
-

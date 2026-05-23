@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pathlib import Path
 import re
 import uuid
-
+from dataclasses import dataclass
+from pathlib import Path
 
 _SENTINEL_RE = re.compile(
-    r'<!-- css-snapshot:([^:\n]+):start -->\s*<style>(.*?)</style>\s*<!-- css-snapshot:\1:end -->',
+    r"<!-- css-snapshot:([^:\n]+):start -->\s*<style>(.*?)</style>\s*<!-- css-snapshot:\1:end -->",
     re.DOTALL | re.IGNORECASE,
 )
 

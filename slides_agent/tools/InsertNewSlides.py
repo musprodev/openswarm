@@ -7,17 +7,17 @@ Do not use in parallel with other tools.
 
 import asyncio
 import json
+import os
 import re
 import threading
 from pathlib import Path
 from typing import Literal
 
-import os
-from dotenv import load_dotenv
 from agency_swarm import Agent, ModelSettings, Reasoning
 from agency_swarm.tools import BaseTool
-from openai import AsyncOpenAI
 from agents.extensions.models.litellm_model import LitellmModel
+from dotenv import load_dotenv
+from openai import AsyncOpenAI
 from pydantic import BaseModel, Field, ValidationError
 
 from .slide_file_utils import (
@@ -29,7 +29,6 @@ from .slide_file_utils import (
 )
 from .slide_html_utils import ensure_full_html
 from .template_registry import load_template_index
-
 
 _PLANNER_MODEL_CLAUDE = "anthropic/claude-sonnet-4-6"
 _PLANNER_MODEL_OAI = "gpt-5.3-codex"
@@ -71,13 +70,18 @@ class _CodexResponsesModel:
     @classmethod
     def _get_cls(cls):
         if cls._cls is None:
-            from agents import OpenAIResponsesModel
             from dataclasses import replace
 
+            from agents import OpenAIResponsesModel
+
             class _Impl(OpenAIResponsesModel):
-                async def _fetch_response(self, system_instructions, input, model_settings, *args, **kwargs):
+                async def _fetch_response(
+                    self, system_instructions, input, model_settings, *args, **kwargs
+                ):
                     model_settings = replace(model_settings, truncation=None)
-                    return await super()._fetch_response(system_instructions, input, model_settings, *args, **kwargs)
+                    return await super()._fetch_response(
+                        system_instructions, input, model_settings, *args, **kwargs
+                    )
 
             cls._cls = _Impl
         return cls._cls
@@ -108,8 +112,10 @@ async def _agent_get_response(agent: Agent, prompt: str, *, use_stream: bool = F
                 if result is not None:
                     result.final_output = assembled
                 else:
+
                     class _R:
                         final_output = assembled
+
                     result = _R()
             except Exception:
                 pass
@@ -132,8 +138,10 @@ def _make_planner_agent(tool=None) -> "tuple[Agent, bool]":
     if anthropic_key:
         model = LitellmModel(model=_PLANNER_MODEL_CLAUDE, api_key=anthropic_key)
     else:
-        from agents import OpenAIResponsesModel
         from openai import AsyncOpenAI
+
+        from agents import OpenAIResponsesModel
+
         caller_client = tool and _get_caller_openai_client(tool)
         if caller_client:
             # Create a fresh client with the same credentials — the caller's client is
@@ -144,7 +152,9 @@ def _make_planner_agent(tool=None) -> "tuple[Agent, bool]":
             )
         else:
             client = AsyncOpenAI()
-        is_codex = bool(caller_client and not str(caller_client.base_url).startswith("https://api.openai.com"))
+        is_codex = bool(
+            caller_client and not str(caller_client.base_url).startswith("https://api.openai.com")
+        )
         if is_codex:
             model = _CodexResponsesModel(model=_PLANNER_MODEL_OAI, openai_client=client)
         else:
@@ -176,6 +186,7 @@ def _run_awaitable(awaitable):
             box["result"] = asyncio.run(awaitable)
         except BaseException as exc:  # noqa: BLE001
             import traceback
+
             err["error"] = exc
             err["tb"] = traceback.format_exc()
 
@@ -238,9 +249,7 @@ def _build_planner_prompt(
 def _infer_template_key(title: str) -> str:
     """Infer a stable template key from full page title text."""
     raw = re.sub(r"[^a-z0-9\s]+", " ", title.lower())
-    words = [
-        w for w in raw.split() if w and w not in {"and", "the", "of", "to", "for", "in"}
-    ]
+    words = [w for w in raw.split() if w and w not in {"and", "the", "of", "to", "for", "in"}]
     if not words:
         return "content_default"
     return "_".join(words)
@@ -270,9 +279,7 @@ def _normalize_outline(
         key = (src.template_key or "").strip() or _infer_template_key(title)
         if key in existing_keys:
             status = "existing"
-            name = existing_templates.get(key, {}).get(
-                "name", _pretty_template_name(key)
-            )
+            name = existing_templates.get(key, {}).get("name", _pretty_template_name(key))
         else:
             # Respect the planner's intra-batch reuse declaration: if the planner
             # says "existing" for a key not in the registry, it means a previous
@@ -389,25 +396,17 @@ class InsertNewSlides(BaseTool):
         rename_map: dict[Path, Path] = {}
         for s in slides:
             if s.index >= insert_position:
-                new_name = build_slide_name(
-                    self.file_prefix, s.index + n, pad_width, s.suffix
-                )
+                new_name = build_slide_name(self.file_prefix, s.index + n, pad_width, s.suffix)
                 rename_map[s.path] = project_dir / new_name
         apply_renames(rename_map)
 
         try:
             planner, is_codex = _make_planner_agent(tool=self)
-            prompt = _build_planner_prompt(
-                self.task_brief, n, insert_position, existing_templates
-            )
-            plan_result = _run_awaitable(
-                _agent_get_response(planner, prompt, use_stream=is_codex)
-            )
+            prompt = _build_planner_prompt(self.task_brief, n, insert_position, existing_templates)
+            plan_result = _run_awaitable(_agent_get_response(planner, prompt, use_stream=is_codex))
         except Exception as exc:
             return f"❌ Outline generation failed: {exc}"
-        plan_text = _extract_json_block(
-            str(getattr(plan_result, "final_output", "") or "")
-        )
+        plan_text = _extract_json_block(str(getattr(plan_result, "final_output", "") or ""))
         if not plan_text:
             return "❌ Outline generation failed: planner returned empty output."
         try:
@@ -464,7 +463,11 @@ class InsertNewSlides(BaseTool):
                 lines.append(f"Step {step_num}: Create pages {pages} IN PARALLEL{prev}")
                 lines.append("These pages can be created simultaneously:")
                 for row in step_rows:
-                    tag = "creates new template" if row["template_status"] == "new" else "uses existing template"
+                    tag = (
+                        "creates new template"
+                        if row["template_status"] == "new"
+                        else "uses existing template"
+                    )
                     lines.append(f"- Page {row['page']}: '{row['template_key']}' ({tag})")
             lines.append("")
 
@@ -479,8 +482,8 @@ class InsertNewSlides(BaseTool):
         )
         return "\n".join(lines)
 
+
 if __name__ == "__main__":
-    
     agent = InsertNewSlides(
         project_name="test",
         task_brief="Create a presentation about the benefits of using AI",

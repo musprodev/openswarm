@@ -6,9 +6,10 @@ import re
 import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
+from collections.abc import Sequence
 from os import makedirs, replace
 from os.path import abspath, basename, exists, expanduser, join, splitext
-from typing import Sequence, cast
+from typing import cast
 from zipfile import ZipFile
 
 from pdf2image import convert_from_path, pdfinfo_from_path
@@ -75,7 +76,7 @@ def run_cmd_no_check(cmd: list[str], *, timeout_seconds: int) -> bool:
             "env": os.environ.copy(),
             "timeout": timeout_seconds,
             "text": True,
-            "input": "\n", # Satisfy "Press Enter to continue" if it occurs
+            "input": "\n",  # Satisfy "Press Enter to continue" if it occurs
         }
         if os.name == "nt":
             # Use CREATE_NO_WINDOW and STARTUPINFO to hide the window as aggressively as possible

@@ -1,14 +1,20 @@
 from agency_swarm import Agent, ModelSettings
 from agency_swarm.tools import (
-    WebSearchTool,
-    PersistentShellTool,
     IPythonInterpreter,
+    PersistentShellTool,
+    WebSearchTool,
 )
-from openai.types.shared import Reasoning
 from dotenv import load_dotenv
+from openai.types.shared import Reasoning
 
 from config import get_default_model, is_openai_provider
-from shared_tools import CopyFile, ExecuteTool, FindTools, ManageConnections, SearchTools
+from shared_tools import (
+    CopyFile,
+    ExecuteTool,
+    FindTools,
+    ManageConnections,
+    SearchTools,
+)
 
 load_dotenv()
 
@@ -49,4 +55,5 @@ def create_virtual_assistant() -> Agent:
 
 if __name__ == "__main__":
     from agency_swarm import Agency
+
     Agency(create_virtual_assistant()).terminal_demo()

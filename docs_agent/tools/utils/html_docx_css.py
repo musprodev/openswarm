@@ -1,5 +1,3 @@
-from typing import Dict, Optional, Tuple
-
 from docx.shared import RGBColor
 
 from .html_docx_constants import _BORDER_SCALE, _NAMED_COLORS
@@ -12,7 +10,7 @@ def _normalize_font_family(font_family: str) -> str:
     return font_family
 
 
-def _parse_font_size_pt(font_size: str) -> Optional[float]:
+def _parse_font_size_pt(font_size: str) -> float | None:
     size = font_size.strip().lower()
     if size.endswith("pt"):
         return _parse_float(size[:-2])
@@ -23,7 +21,7 @@ def _parse_font_size_pt(font_size: str) -> Optional[float]:
     return None
 
 
-def _parse_color(value: str) -> Optional[RGBColor]:
+def _parse_color(value: str) -> RGBColor | None:
     color = value.strip().lower()
     if color in _NAMED_COLORS:
         r, g, b = _NAMED_COLORS[color]
@@ -51,14 +49,14 @@ def _parse_color(value: str) -> Optional[RGBColor]:
     return None
 
 
-def _parse_float(value: str) -> Optional[float]:
+def _parse_float(value: str) -> float | None:
     try:
         return float(value)
     except ValueError:
         return None
 
 
-def _parse_background_color(style_map: Dict[str, str]) -> Optional[str]:
+def _parse_background_color(style_map: dict[str, str]) -> str | None:
     bg = style_map.get("background", "") or style_map.get("background-color", "")
     bg = bg.strip().lower()
     if not bg:
@@ -68,7 +66,7 @@ def _parse_background_color(style_map: Dict[str, str]) -> Optional[str]:
         return f"{r:02X}{g:02X}{b:02X}"
     if "linear-gradient" in bg and "#" in bg:
         start = bg.find("#")
-        return bg[start + 1:start + 7].upper()
+        return bg[start + 1 : start + 7].upper()
     if bg.startswith("#"):
         hex_value = bg[1:]
         if len(hex_value) == 3:
@@ -78,7 +76,7 @@ def _parse_background_color(style_map: Dict[str, str]) -> Optional[str]:
     return None
 
 
-def _parse_border_left(style_map: Dict[str, str]) -> Optional[Tuple[float, str]]:
+def _parse_border_left(style_map: dict[str, str]) -> tuple[float, str] | None:
     border = style_map.get("border-left", "")
     if border:
         parts = border.split()
@@ -111,7 +109,7 @@ def _parse_border_left(style_map: Dict[str, str]) -> Optional[Tuple[float, str]]
     return None
 
 
-def _parse_border(border_value: str) -> Optional[Tuple[float, str]]:
+def _parse_border(border_value: str) -> tuple[float, str] | None:
     border = border_value.strip()
     if not border:
         return None
@@ -131,7 +129,7 @@ def _parse_border(border_value: str) -> Optional[Tuple[float, str]]:
     return None
 
 
-def _parse_padding(padding_value: str) -> Optional[Tuple[float, float, float, float]]:
+def _parse_padding(padding_value: str) -> tuple[float, float, float, float] | None:
     if not padding_value:
         return None
     parts = [p for p in padding_value.replace(",", " ").split() if p]
@@ -151,8 +149,8 @@ def _parse_padding(padding_value: str) -> Optional[Tuple[float, float, float, fl
 
 
 def _resolve_padding(
-    style_map: Dict[str, str],
-) -> Optional[Tuple[Optional[float], Optional[float], Optional[float], Optional[float]]]:
+    style_map: dict[str, str],
+) -> tuple[float | None, float | None, float | None, float | None] | None:
     padding = _parse_padding(style_map.get("padding", ""))
     top, right, bottom, left = padding if padding else (None, None, None, None)
     padding_top = _parse_length_to_pt(style_map.get("padding-top", ""))
@@ -173,8 +171,8 @@ def _resolve_padding(
 
 
 def _normalize_padding(
-    padding: Tuple[Optional[float], Optional[float], Optional[float], Optional[float]],
-) -> Tuple[float, float, float, float]:
+    padding: tuple[float | None, float | None, float | None, float | None],
+) -> tuple[float, float, float, float]:
     top, right, bottom, left = padding
     return (
         top or 0.0,
@@ -184,7 +182,7 @@ def _normalize_padding(
     )
 
 
-def _parse_px_to_pt(value: str) -> Optional[float]:
+def _parse_px_to_pt(value: str) -> float | None:
     val = value.strip().lower()
     if val.endswith("px"):
         px = _parse_float(val[:-2])
@@ -195,7 +193,7 @@ def _parse_px_to_pt(value: str) -> Optional[float]:
     return None
 
 
-def _parse_length_to_pt(value: str) -> Optional[float]:
+def _parse_length_to_pt(value: str) -> float | None:
     val = value.strip().lower()
     if not val:
         return None
@@ -208,7 +206,7 @@ def _parse_length_to_pt(value: str) -> Optional[float]:
     return None
 
 
-def _parse_percentage(value: str) -> Optional[float]:
+def _parse_percentage(value: str) -> float | None:
     val = value.strip().replace("%", "")
     try:
         return float(val) / 100.0
@@ -216,7 +214,7 @@ def _parse_percentage(value: str) -> Optional[float]:
         return None
 
 
-def _parse_color_hex(value: str) -> Optional[str]:
+def _parse_color_hex(value: str) -> str | None:
     color = value.strip().lower()
     if color in _NAMED_COLORS:
         r, g, b = _NAMED_COLORS[color]
@@ -240,7 +238,7 @@ def _parse_color_hex(value: str) -> Optional[str]:
 
 def _parse_box_values(
     value: str,
-) -> Optional[Tuple[Optional[float], Optional[float], Optional[float], Optional[float]]]:
+) -> tuple[float | None, float | None, float | None, float | None] | None:
     if not value:
         return None
     parts = [p for p in value.replace(",", " ").split() if p]

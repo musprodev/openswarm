@@ -19,7 +19,9 @@ class ReadSlide(BaseTool):
 
     def run(self) -> str:
         project_dir = get_project_dir(self.project_name)
-        slide_name = self.slide_name if self.slide_name.endswith(".html") else f"{self.slide_name}.html"
+        slide_name = (
+            self.slide_name if self.slide_name.endswith(".html") else f"{self.slide_name}.html"
+        )
         slide_path = project_dir / slide_name
         if not slide_path.exists():
             return f"Error: slide not found at {slide_path}"

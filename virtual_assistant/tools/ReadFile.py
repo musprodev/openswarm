@@ -1,6 +1,5 @@
 import mimetypes
 import os
-from typing import Optional
 
 from agency_swarm.tools import BaseTool
 from pydantic import Field
@@ -19,11 +18,11 @@ class ReadFile(BaseTool):
     """
 
     file_path: str = Field(..., description="The absolute path to the file to read")
-    offset: Optional[int] = Field(
+    offset: int | None = Field(
         None,
         description="The line number to start reading from. Only provide if the file is too large to read at once",
     )
-    limit: Optional[int] = Field(
+    limit: int | None = Field(
         None,
         description="The number of lines to read. Only provide if the file is too large to read at once.",
     )
@@ -32,7 +31,7 @@ class ReadFile(BaseTool):
         try:
             abs_path = os.path.abspath(self.file_path)
             try:
-                if hasattr(self, '_context') and self._context is not None:
+                if hasattr(self, "_context") and self._context is not None:
                     read_files = self._context.get("read_files", set())
                     read_files.add(abs_path)
                     self._context.set("read_files", read_files)
@@ -54,14 +53,16 @@ class ReadFile(BaseTool):
                 return "Error: This is a Jupyter notebook file. Please use a notebook-specific tool instead."
 
             try:
-                with open(self.file_path, "r", encoding="utf-8") as file:
+                with open(self.file_path, encoding="utf-8") as file:
                     lines = file.readlines()
             except UnicodeDecodeError:
                 try:
-                    with open(self.file_path, "r", encoding="latin-1") as file:
+                    with open(self.file_path, encoding="latin-1") as file:
                         lines = file.readlines()
                 except UnicodeDecodeError:
-                    return f"Error: Unable to decode file {self.file_path}. It may be a binary file."
+                    return (
+                        f"Error: Unable to decode file {self.file_path}. It may be a binary file."
+                    )
 
             if not lines:
                 return f"Warning: File exists but has empty contents: {self.file_path}"
@@ -89,7 +90,9 @@ class ReadFile(BaseTool):
                 if self.offset or self.limit:
                     result += f"\n[Truncated: showing lines {start_line + 1}-{start_line + lines_shown} of {total_lines} total lines]"
                 else:
-                    result += f"\n[Truncated: showing first {lines_shown} of {total_lines} total lines]"
+                    result += (
+                        f"\n[Truncated: showing first {lines_shown} of {total_lines} total lines]"
+                    )
 
             return result.rstrip()
 
@@ -105,4 +108,3 @@ if __name__ == "__main__":
     tool = ReadFile(file_path=current_file, limit=10)
     print("Reading first 10 lines:")
     print(tool.run())
-

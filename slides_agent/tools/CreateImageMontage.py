@@ -4,7 +4,7 @@ import re
 import tempfile
 from math import ceil
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Literal, Optional
+from typing import TYPE_CHECKING, Literal
 
 from agency_swarm.tools import BaseTool
 from pydantic import Field
@@ -15,11 +15,19 @@ if TYPE_CHECKING:
 # Supported image extensions (same as EnsureRasterImage)
 RASTER_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tif", ".tiff", ".webp"}
 CONVERTIBLE_EXTS = {
-    ".emf", ".wmf", ".emz", ".wmz",
-    ".svg", ".svgz",
-    ".wdp", ".jxr",
-    ".heic", ".heif",
-    ".pdf", ".eps", ".ps",
+    ".emf",
+    ".wmf",
+    ".emz",
+    ".wmz",
+    ".svg",
+    ".svgz",
+    ".wdp",
+    ".jxr",
+    ".heic",
+    ".heif",
+    ".pdf",
+    ".eps",
+    ".ps",
 }
 SUPPORTED_EXTS = RASTER_EXTS | CONVERTIBLE_EXTS
 
@@ -38,11 +46,11 @@ class CreateImageMontage(BaseTool):
     before inclusion in the montage.
     """
 
-    input_files: Optional[List[str]] = Field(
+    input_files: list[str] | None = Field(
         default=None,
         description="List of image file paths (mutually exclusive with input_dir)",
     )
-    input_dir: Optional[str] = Field(
+    input_dir: str | None = Field(
         default=None,
         description="Directory containing images (mutually exclusive with input_files)",
     )
@@ -97,7 +105,7 @@ class CreateImageMontage(BaseTool):
             # Natural sort for proper ordering (slide-1, slide-2, ..., slide-10)
             input_paths = sorted(
                 [p for p in input_dir.iterdir() if p.suffix.lower() in SUPPORTED_EXTS],
-                key=lambda p: self._natural_key(p.name)
+                key=lambda p: self._natural_key(p.name),
             )
             if not input_paths:
                 return f"Error: No supported images found in {self.input_dir}"
@@ -129,9 +137,7 @@ class CreateImageMontage(BaseTool):
 
         # Create placeholder for failed images
         if valid_count < len(images):
-            placeholder = self._make_placeholder(
-                int(min(self.cell_width, self.cell_height) * 0.6)
-            )
+            placeholder = self._make_placeholder(int(min(self.cell_width, self.cell_height) * 0.6))
 
         # Calculate grid dimensions
         cols = self.num_col
@@ -201,7 +207,12 @@ class CreateImageMontage(BaseTool):
 
             # Draw border
             draw.rectangle(
-                [paste_x - 1, paste_y - 1, paste_x + resized.width, paste_y + resized.height],
+                [
+                    paste_x - 1,
+                    paste_y - 1,
+                    paste_x + resized.width,
+                    paste_y + resized.height,
+                ],
                 outline=(160, 160, 160),
                 width=1,
             )

@@ -1,15 +1,15 @@
 # FastAPI entry point — run with: python server.py
 
 import logging
+
+from agency_swarm.integrations.fastapi import run_fastapi
 from dotenv import load_dotenv
+
+from swarm import create_agency
 
 load_dotenv()
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
-
-from swarm import create_agency
-from agency_swarm.integrations.fastapi import run_fastapi
 
 
 if __name__ == "__main__":
