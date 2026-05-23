@@ -297,8 +297,10 @@ Or via `opencode.json`:
 
 - Python ≥ 3.12
 - Node.js ≥ 18
-- LibreOffice (for PPTX export)
-- Poppler / pdftoppm (for slide thumbnails)
+
+**Optional:**
+- LibreOffice — enables slide thumbnails and previews
+- Poppler / pdftoppm — enables PDF-based slide processing
 
 ### Setup
 
