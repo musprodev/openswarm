@@ -1,57 +1,77 @@
 <div align="center">
 
-# OpenSwarm — OFFICE AI Agent
+# OpenSwarm
 
-![OpenSwarm](assets/new-framework.jpg)
+**Your AI-powered office. One prompt → complete deliverables.**
 
-**Your AI-powered office team. From a single prompt to complete deliverables.**
+![OpenSwarm](assets/openswarm.png)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-≥3.12-blue)](https://python.org)
-[![Node](https://img.shields.io/badge/node-≥18-green)](https://nodejs.org)
+[![Python](https://img.shields.io/badge/Python-≥3.12-blue)](https://python.org)
+[![Node](https://img.shields.io/badge/Node-≥18-green)](https://nodejs.org)
+[![Docker](https://img.shields.io/badge/Docker-ready-blue)](https://docker.com)
+[![CLI](https://img.shields.io/badge/CLI-opencode-purple)](https://opencode.ai)
 
-OpenSwarm is an **open-source multi-agent AI system** that acts as your entire office staff — research, write, analyze data, build slides, generate images, produce videos, and manage communications. Eight specialized agents collaborate through an orchestrator to produce complete deliverables from one prompt.
+</div>
 
-Built on [Agency Swarm](https://github.com/VRSEN/agency-swarm) and the OpenAI Agents SDK.
+OpenSwarm is an **open-source multi-agent AI system** that acts as your entire office staff. Eight specialized agents collaborate through an intelligent orchestrator — research, write, analyze data, build slides, generate images, produce videos, and manage communications. All from a single prompt.
+
+---
+
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Usage](#usage)
+- [Example Prompts](#example-prompts)
+- [Architecture](#architecture)
+- [Agent Reference](#agent-reference)
+- [Configuration](#configuration)
+- [OpenCode Integration](#opencode-integration)
+- [Project Structure](#project-structure)
+- [Development](#development)
+- [Custom Swarms](#custom-swarms)
+- [License](#license)
 
 ---
 
 ## Features
 
-| # | Agent | Capabilities |
-|---|-------|-------------|
-| 1 | **Orchestrator** | Routes every request to the right specialist. Pure coordination — never answers directly. Breaks complex tasks into parallel subtasks. |
-| 2 | **Virtual Assistant** | Email, calendar, Slack, file management, task tracking. Connects to 10,000+ external services via Composio (Gmail, Slack, GitHub, HubSpot, Google Calendar, and more). |
-| 3 | **Deep Research** | Comprehensive web research with citations. Competitive analysis, academic paper searches, and balanced evidence-based synthesis. |
-| 4 | **Data Analyst** | Analyzes spreadsheets, builds charts, runs statistical models — all inside an isolated IPython kernel. Supports pandas, numpy, scipy, scikit-learn, matplotlib, seaborn, plotly. |
-| 5 | **Docs Agent** | Creates formatted Word documents and PDFs from outlines or raw content. Full document lifecycle: create, view, modify, convert, restore. |
-| 6 | **Slides Agent** | Generates polished HTML slide decks with speaker notes, then exports to PPTX. Supports themes, layouts, images, charts, and custom styling. |
-| 7 | **Image Generation Agent** | Generates and edits images using Gemini 2.5 Flash Image / Gemini 3 Pro Image and fal.ai. Supports combine, edit, and background removal. |
-| 8 | **Video Generation Agent** | Produces videos via Sora (OpenAI), Veo (Google), and Seedance (fal.ai). Edit audio, add subtitles, combine clips, trim, and generate images for video. |
+OpenSwarm replaces an entire office toolchain with a team of AI agents that hand off work to each other automatically.
 
-### Key Capabilities
+### Agent Capabilities
 
-- **Parallel execution** — orchestrator splits complex tasks across multiple agents simultaneously
-- **File attachments** — agents share documents, images, slides, and data files
-- **10,000+ integrations** — Gmail, Slack, GitHub, Google Calendar, HubSpot, and more via Composio
-- **Dual model support** — works with OpenAI, Anthropic Claude, or Google Gemini
-- **Graceful degradation** — tools disable themselves when API keys are missing
-- **Auto-bootstrap** — dependencies install automatically on first run
+| Agent | What it does |
+|---|---|
+| **Orchestrator** | Routes every request to the right specialist. Breaks complex tasks into parallel subtasks and assembles final output. |
+| **Virtual Assistant** | Email, calendar, Slack, file management, task tracking. 10,000+ integrations via Composio (Gmail, Slack, GitHub, HubSpot, Google Calendar). |
+| **Deep Research** | Comprehensive web research with citations. Competitive analysis, academic paper search, evidence-based synthesis. |
+| **Data Analyst** | Spreadsheet analysis, charts, statistical models — all inside an isolated IPython kernel. pandas, numpy, scipy, scikit-learn, matplotlib, seaborn, plotly. |
+| **Docs Agent** | Formatted Word documents and PDFs. Full document lifecycle: create, view, modify, convert, restore. |
+| **Slides Agent** | Polished HTML slide decks with speaker notes, exported to PPTX. Themes, layouts, images, charts, custom styling. |
+| **Image Agent** | Generate and edit images via Gemini and fal.ai. Combine, edit, background removal. |
+| **Video Agent** | Produce videos via Sora, Veo, Seedance. Edit audio, add subtitles, combine clips, trim. |
+
+### Platform Capabilities
+
+- **Parallel execution** — agents work simultaneously on split tasks
+- **File sharing** — agents pass documents, images, slides between each other
+- **10,000+ integrations** — Gmail, Slack, GitHub, Google Calendar, HubSpot and more
+- **Multi-provider** — OpenAI, Anthropic Claude, or Google Gemini
+- **Graceful degradation** — missing API keys disable only the affected tools
+- **Auto-bootstrap** — dependencies install themselves on first run
 
 ---
 
-## Installation
+## Quick Start
 
-### Quick Install (recommended)
+### One-liner (recommended)
 
 ```bash
-npm install -g @vrsen/openswarm
-openswarm
+npm install -g @vrsen/openswarm && openswarm
 ```
 
-The setup wizard handles authentication, dependencies, and configuration automatically.
+The setup wizard handles everything: API keys, dependencies, configuration.
 
-### From Source
+### From source
 
 ```bash
 git clone https://github.com/musprodev/openswarm.git
@@ -62,28 +82,21 @@ python swarm.py
 ### Docker
 
 ```bash
-cp .env.example .env        # Add your API keys
+cp .env.example .env
 docker-compose up --build
-```
-
-### Python (pip)
-
-```bash
-pip install open-swarm
-openswarm
 ```
 
 ---
 
 ## Usage
 
-### Terminal UI (default)
+### Terminal UI
 
 ```bash
 openswarm
 ```
 
-Launches the interactive terminal UI. Type your request and the orchestrator routes it to the right agents.
+Launches the interactive terminal. Type a request and the orchestrator dispatches it to the right agents.
 
 ### API Server
 
@@ -91,63 +104,33 @@ Launches the interactive terminal UI. Type your request and the orchestrator rou
 python server.py
 ```
 
-Starts a FastAPI server on `localhost:8080` with full Agency Swarm API endpoints.
+FastAPI server on `localhost:8080` with full API endpoints.
 
-### OpenCode Agent
+### Python module
 
-Use OpenSwarm as an agent inside [OpenCode](https://opencode.ai):
+```python
+from swarm import create_agency
 
-```bash
-opencode --agent openswarm
+agency = create_agency()
+agency.demo()
 ```
 
-Or reference it from your `opencode.json`:
+---
 
-```json
-{
-  "agents": {
-    "openswarm": {
-      "description": "Multi-agent OFFICE AI team",
-      "path": "/path/to/openswarm/agents/openswarm.md"
-    }
-  }
-}
-```
+## Example Prompts
 
-Available sub-agents:
-
-| Agent file | Purpose |
-|---|---|
-| `agents/openswarm.md` | Orchestrator — entry point, routes tasks |
-| `agents/openswarm-coder.md` | Coding and software engineering |
-| `agents/openswarm-data-analyst.md` | Data analysis and visualization |
-| `agents/openswarm-deep-research.md` | Web research and synthesis |
-| `agents/openswarm-docs-agent.md` | Document creation and editing |
-| `agents/openswarm-formatter.md` | Formatting and export |
-| `agents/openswarm-image-agent.md` | Image generation and editing |
-| `agents/openswarm-plagiarism.md` | Plagiarism and originality checking |
-| `agents/openswarm-reviewer.md` | Review and QA |
-| `agents/openswarm-slides-agent.md` | Slide deck generation |
-| `agents/openswarm-video-agent.md` | Video generation and editing |
-| `agents/openswarm-virtual-assistant.md` | Email, calendar, Slack, files |
-
-### Example Prompts
+Paste these into the terminal:
 
 ```bash
-# Full office workflow
-"Create a quarterly report for last quarter's sales data — analyze the numbers, build charts, write the report, and make a slide deck"
+"Create a quarterly report from last quarter's data — analyze the numbers, build charts, write the report, make a slide deck"
 
-# Research + content
 "Research our top 5 competitors and write 3 SEO-optimized blog posts with images"
 
-# Marketing campaign
 "Build a Q2 marketing campaign — strategy doc, creative assets, social posts, and a promo video"
 
-# Meeting + follow-up
-"Schedule a team standup for tomorrow, send the agenda via email, and prepare meeting notes template"
+"Schedule a team standup for tomorrow, send the agenda via email, and prepare meeting notes"
 
-# Investor materials
-"Create an investor pitch deck with market research, financial projections, and an executive summary document"
+"Create an investor pitch deck with market research, financial projections, and executive summary"
 ```
 
 ---
@@ -155,36 +138,49 @@ Available sub-agents:
 ## Architecture
 
 ```
-┌─────────────┐
-│    User     │
-└──────┬──────┘
-       │
-┌──────▼──────┐
-│ Orchestrator│  Routes work to specialists
-└──────┬──────┘
-       │
-       ├──────────────────────────────────┐
-       │        Parallel Execution        │
-       ├────────┬────────┬───────┬───────┤
-       ▼        ▼        ▼       ▼       ▼
-┌─────────┐ ┌──────┐ ┌────┐ ┌────┐ ┌──────┐
-│ Virtual │ │Deep  │ │Data│ │Docs│ │Slides│
-│ Assis-  │ │Rese- │ │Ana-│ │Age-│ │Agent │
-│ tant    │ │arch  │ │lyst│ │nt  │ │      │
-└─────────┘ └──────┘ └────┘ └────┘ └──────┘
-┌─────────┐ ┌──────┐ ┌────┐
-│ Image   │ │Video │ │... │
-│ Agent   │ │Agent │ │More│
-└─────────┘ └──────┘ └────┘
+                    ┌─────────────┐
+                    │    User     │
+                    └──────┬──────┘
+                           │
+                    ┌──────▼──────┐
+                    │ Orchestrator│
+                    └──────┬──────┘
+                           │
+         ┌─────────────────┼─────────────────┐
+         │     Parallel    │    Execution     │
+         ▼          ▼      ▼       ▼          ▼
+   ┌──────────┐ ┌────────┐ ┌──────┐ ┌──────┐ ┌──────────┐
+   │  Virtual │ │  Deep  │ │ Data │ │ Docs │ │  Slides  │
+   │Assistant │ │Research│ │Analyst│ │Agent │ │  Agent   │
+   └──────────┘ └────────┘ └──────┘ └──────┘ └──────────┘
+   ┌──────────┐ ┌────────┐
+   │  Image   │ │  Video │
+   │  Agent   │ │  Agent │
+   └──────────┘ └────────┘
 ```
 
-Each agent operates independently with its own tools, instructions, and model configuration. The orchestrator splits complex tasks, distributes them, and assembles the final output.
+Each agent is an independent module with its own tools, instructions, and model config. The orchestrator handles task splitting, distribution, and result assembly. Agents communicate through a shared tool system and can pass files to each other.
+
+---
+
+## Agent Reference
+
+| Agent | Entry point | Tools |
+|---|---|---|
+| Orchestrator | `orchestrator/` | Handoff, SendMessage |
+| Virtual Assistant | `virtual_assistant/` | Email, Calendar, Slack, Files, Search |
+| Deep Research | `deep_research/` | Web search, Scholar search |
+| Data Analyst | `data_analyst_agent/` | IPython kernel, pandas, matplotlib |
+| Docs Agent | `docs_agent/` | Create/Modify/Convert/View documents |
+| Slides Agent | `slides_agent/` | HTML slides, PPTX export |
+| Image Agent | `image_generation_agent/` | Generate, Edit, Combine, Remove BG |
+| Video Agent | `video_generation_agent/` | Generate, Edit, Combine, Subtitles |
 
 ---
 
 ## Configuration
 
-### Required (choose at least one)
+### Required (choose one)
 
 | Variable | Provider |
 |---|---|
@@ -197,23 +193,100 @@ Each agent operates independently with its own tools, instructions, and model co
 | Variable | What it unlocks |
 |---|---|
 | `COMPOSIO_API_KEY` | 10,000+ integrations (Gmail, Slack, GitHub, HubSpot) |
+| `COMPOSIO_USER_ID` | User ID for Composio |
 | `SEARCH_API_KEY` | Web search for Research Agent |
-| `FAL_KEY` | Advanced video editing, background removal |
+| `FAL_KEY` | Video editing, background removal |
 | `PEXELS_API_KEY` | Stock photo search |
 | `PIXABAY_API_KEY` | Stock photo search |
 | `UNSPLASH_ACCESS_KEY` | Stock photo search |
-| `DEFAULT_MODEL` | Override the default model for all agents |
-
-Copy `.env.example` to `.env` and fill in your keys:
+| `DEFAULT_MODEL` | Override default model for all agents |
 
 ```bash
 cp .env.example .env
 ```
 
-Or run the setup wizard:
+Or use the interactive wizard:
 
 ```bash
 python onboard.py
+```
+
+---
+
+## OpenCode Integration
+
+OpenSwarm can be used as an agent inside [OpenCode](https://opencode.ai):
+
+```bash
+opencode --agent openswarm
+```
+
+Or via `opencode.json`:
+
+```json
+{
+  "agents": {
+    "openswarm": {
+      "description": "Multi-agent OFFICE AI team",
+      "path": "/path/to/openswarm/agents/openswarm.md"
+    }
+  }
+}
+```
+
+### Available sub-agents
+
+| File | Role |
+|---|---|
+| `agents/openswarm.md` | Orchestrator — entry point |
+| `agents/openswarm-coder.md` | Software engineering |
+| `agents/openswarm-data-analyst.md` | Data analysis & visualization |
+| `agents/openswarm-deep-research.md` | Web research & synthesis |
+| `agents/openswarm-docs-agent.md` | Document creation |
+| `agents/openswarm-formatter.md` | Formatting & export |
+| `agents/openswarm-image-agent.md` | Image generation |
+| `agents/openswarm-plagiarism.md` | Originality checking |
+| `agents/openswarm-reviewer.md` | Review & QA |
+| `agents/openswarm-slides-agent.md` | Slide decks |
+| `agents/openswarm-video-agent.md` | Video production |
+| `agents/openswarm-virtual-assistant.md` | Email, calendar, Slack |
+
+---
+
+## Project Structure
+
+```
+├── swarm.py                    # Agency config, agent imports, comm flows
+├── server.py                   # FastAPI server
+├── run_utils.py                # CLI bootstrap & auto-install
+├── onboard.py                  # Setup wizard
+├── config.py                   # Model configuration
+├── helpers.py                  # Integration helpers
+├── shared_instructions.md      # Cross-agent context
+│
+├── orchestrator/               # Orchestrator agent
+├── virtual_assistant/          # Email, calendar, Slack, files
+├── deep_research/              # Web research
+├── data_analyst_agent/         # Data analysis & visualization
+├── docs_agent/                 # Document creation
+├── slides_agent/               # Slide decks & PPTX export
+├── image_generation_agent/     # Image generation & editing
+├── video_generation_agent/     # Video generation & editing
+│
+├── shared_tools/               # Cross-agent tool system
+├── patches/                    # Runtime dependency patches
+├── schemas/                    # JSON data models
+├── tools/                      # State management, context
+├── agents/                     # OpenCode agent definitions
+├── docs/                       # Documentation
+├── assets/                     # Branding assets
+│
+├── bin/openswarm               # npm entry point
+├── docker-compose.yml          # Docker deployment
+├── Dockerfile                  # Docker build
+├── .env.example                # Environment template
+├── .github/                    # CI/CD & issues
+└── AGENTS.md                   # AI agent customization guide
 ```
 
 ---
@@ -224,72 +297,37 @@ python onboard.py
 
 - Python ≥ 3.12
 - Node.js ≥ 18
-- LibreOffice (for slides export)
-- Poppler (for PDF thumbnails)
+- LibreOffice (for PPTX export)
+- Poppler / pdftoppm (for slide thumbnails)
 
 ### Setup
 
 ```bash
 git clone https://github.com/musprodev/openswarm.git
 cd openswarm
-cp .env.example .env     # Add your API keys
-pip install -e .         # Install Python deps
-npm install              # Install Node deps
-```
-
-### Project Structure
-
-```
-├── swarm.py                     # Main config — agent imports, communication flows
-├── server.py                    # FastAPI entry point
-├── run_utils.py                 # CLI bootstrap and auto-install
-├── onboard.py                   # Interactive setup wizard
-├── config.py                    # Model configuration
-├── helpers.py                   # Composio integration helpers
-├── shared_instructions.md       # Context shared across all agents
-│
-├── orchestrator/                # Orchestrator agent
-├── virtual_assistant/           # Email, calendar, Slack, files
-├── deep_research/               # Web research and synthesis
-├── data_analyst_agent/          # Data analysis and visualization
-├── docs_agent/                  # Document creation
-├── slides_agent/                # Slide deck generation
-├── image_generation_agent/      # Image generation and editing
-├── video_generation_agent/      # Video generation and editing
-│
-├── shared_tools/                # Cross-agent tools
-├── patches/                     # Runtime patches for dependencies
-├── schemas/                     # JSON data models
-├── tools/                       # Utility tools (state, context)
-├── agents/                      # OpenCode agent definitions
-├── docs/                        # Documentation
-│
-├── .github/                     # CI/CD workflows and issue templates
-├── bin/openswarm                # npm launcher
-├── docker-compose.yml           # Docker deployment
-└── Dockerfile                   # Docker build
+cp .env.example .env
+pip install -e .
+npm install
 ```
 
 ---
 
-## Build Your Own Swarm
+## Custom Swarms
 
-Fork this repo and customize it for any domain. Tell your AI coding agent:
+Fork this repo and reshape it for any domain. Tell your coding agent:
 
-> "Turn this into an SEO optimization swarm"
+> "Turn this into an SEO optimization swarm."
 
-The agent reads `AGENTS.md`, understands the structure, and rewires everything automatically.
+The agent reads `AGENTS.md` and rewires everything automatically.
 
-**Popular custom swarms:**
-- **SEO Swarm** — Keyword research + competitor analysis + blog writing
-- **Sales Swarm** — Lead research + outreach + proposal generation
-- **Marketing Swarm** — Campaign planning + creative assets + analytics
-- **Academic Swarm** — Research paper writing + formatting + bibliography
+**Ready-made ideas:**
+- **SEO Swarm** — keyword research, competitor analysis, blog writing
+- **Sales Swarm** — lead research, outreach sequencing, proposal generation
+- **Marketing Swarm** — campaign planning, creative assets, analytics
+- **Academic Swarm** — research writing, formatting, bibliography
 
 ---
 
 ## License
 
 MIT — see [LICENSE](LICENSE).
-
-Built with ❤️ on [Agency Swarm](https://github.com/VRSEN/agency-swarm).
